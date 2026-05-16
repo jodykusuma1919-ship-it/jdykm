@@ -598,13 +598,14 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
       [auction.category]: prev[auction.category] + 1
     }))
 
-    // Reduce inventory when bid is placed (reduce by auction quantity)
+    // Reduce inventory when bid is placed (reduce by 1 per bid)
     const inventoryKey = auction.category as 'fragmentCard' | 'timespace' | 'lnd'
+    const currentValue = settings.lootInventory[inventoryKey]?.current ?? 0
     updateLootInventory({
       ...settings.lootInventory,
       [inventoryKey]: {
         ...settings.lootInventory[inventoryKey],
-        current: Math.max(0, settings.lootInventory[inventoryKey].current - auction.quantity)
+        current: Math.max(0, currentValue - 1)
       }
     })
 
