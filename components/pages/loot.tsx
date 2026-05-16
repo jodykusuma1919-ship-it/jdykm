@@ -796,83 +796,123 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
         )}
       </div>
 
-      {/* Economy Loot - Who Already Bid */}
+      {/* Economy Loot - Who Already Bid (includes approved requests) */}
       <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-5 mb-5">
         <div className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
           <span className="text-lg">📊</span> Economy Loot - Current Bidders
+          <span className="text-[10px] font-normal text-muted-foreground ml-2">(Approved requests show as bidders)</span>
         </div>
         <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">
           {/* Fragment Card Bidders */}
-          <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl">🃏</span>
-              <span className="text-xs font-bold text-foreground">Fragment Card</span>
-              <span className="ml-auto text-[10px] font-bold text-purple-400">
-                {activeAuctions.filter(a => a.category === 'fragmentCard').reduce((sum, a) => sum + a.bids.length, 0)} bids
-              </span>
-            </div>
-            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
-              {activeAuctions.filter(a => a.category === 'fragmentCard').flatMap(a => 
-                a.bids.map((bid, i) => (
-                  <div key={`fc-${a.id}-${i}`} className="flex items-center justify-between text-xs py-1 px-2 bg-purple-500/10 rounded">
-                    <span className="text-foreground/80">{bid.icon} {bid.user}</span>
-                    <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
-                  </div>
-                ))
-              )}
-              {activeAuctions.filter(a => a.category === 'fragmentCard').reduce((sum, a) => sum + a.bids.length, 0) === 0 && (
-                <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bids yet</div>
-              )}
-            </div>
-          </div>
+          {(() => {
+            const auctionBids = activeAuctions.filter(a => a.category === 'fragmentCard').flatMap(a => 
+              a.bids.map(bid => ({ ...bid, source: 'auction' as const }))
+            )
+            const approvedBids = approvedLoot.filter(r => r.itemType === 'Fragment Card').map(r => ({
+              user: r.memberName,
+              icon: r.memberClass.icon,
+              dkp: r.dkpCost,
+              time: 'Approved',
+              source: 'approved' as const
+            }))
+            const allBids = [...auctionBids, ...approvedBids]
+            return (
+              <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">🃏</span>
+                  <span className="text-xs font-bold text-foreground">Fragment Card</span>
+                  <span className="ml-auto text-[10px] font-bold text-purple-400">
+                    {allBids.length} bidders
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
+                  {allBids.map((bid, i) => (
+                    <div key={`fc-${i}`} className={`flex items-center justify-between text-xs py-1 px-2 rounded ${bid.source === 'approved' ? 'bg-accent/10 border border-accent/20' : 'bg-purple-500/10'}`}>
+                      <span className="text-foreground/80">{bid.icon} {bid.user}</span>
+                      <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
+                    </div>
+                  ))}
+                  {allBids.length === 0 && (
+                    <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bidders yet</div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Timespace Bidders */}
-          <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl">🔮</span>
-              <span className="text-xs font-bold text-foreground">Timespace</span>
-              <span className="ml-auto text-[10px] font-bold text-cyan-400">
-                {activeAuctions.filter(a => a.category === 'timespace').reduce((sum, a) => sum + a.bids.length, 0)} bids
-              </span>
-            </div>
-            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
-              {activeAuctions.filter(a => a.category === 'timespace').flatMap(a => 
-                a.bids.map((bid, i) => (
-                  <div key={`ts-${a.id}-${i}`} className="flex items-center justify-between text-xs py-1 px-2 bg-cyan-500/10 rounded">
-                    <span className="text-foreground/80">{bid.icon} {bid.user}</span>
-                    <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
-                  </div>
-                ))
-              )}
-              {activeAuctions.filter(a => a.category === 'timespace').reduce((sum, a) => sum + a.bids.length, 0) === 0 && (
-                <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bids yet</div>
-              )}
-            </div>
-          </div>
+          {(() => {
+            const auctionBids = activeAuctions.filter(a => a.category === 'timespace').flatMap(a => 
+              a.bids.map(bid => ({ ...bid, source: 'auction' as const }))
+            )
+            const approvedBids = approvedLoot.filter(r => r.itemType === 'Timespace').map(r => ({
+              user: r.memberName,
+              icon: r.memberClass.icon,
+              dkp: r.dkpCost,
+              time: 'Approved',
+              source: 'approved' as const
+            }))
+            const allBids = [...auctionBids, ...approvedBids]
+            return (
+              <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">🔮</span>
+                  <span className="text-xs font-bold text-foreground">Timespace</span>
+                  <span className="ml-auto text-[10px] font-bold text-cyan-400">
+                    {allBids.length} bidders
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
+                  {allBids.map((bid, i) => (
+                    <div key={`ts-${i}`} className={`flex items-center justify-between text-xs py-1 px-2 rounded ${bid.source === 'approved' ? 'bg-accent/10 border border-accent/20' : 'bg-cyan-500/10'}`}>
+                      <span className="text-foreground/80">{bid.icon} {bid.user}</span>
+                      <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
+                    </div>
+                  ))}
+                  {allBids.length === 0 && (
+                    <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bidders yet</div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* LND Bidders */}
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl">⚡</span>
-              <span className="text-xs font-bold text-foreground">LND</span>
-              <span className="ml-auto text-[10px] font-bold text-amber-400">
-                {activeAuctions.filter(a => a.category === 'lnd').reduce((sum, a) => sum + a.bids.length, 0)} bids
-              </span>
-            </div>
-            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
-              {activeAuctions.filter(a => a.category === 'lnd').flatMap(a => 
-                a.bids.map((bid, i) => (
-                  <div key={`lnd-${a.id}-${i}`} className="flex items-center justify-between text-xs py-1 px-2 bg-amber-500/10 rounded">
-                    <span className="text-foreground/80">{bid.icon} {bid.user}</span>
-                    <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
-                  </div>
-                ))
-              )}
-              {activeAuctions.filter(a => a.category === 'lnd').reduce((sum, a) => sum + a.bids.length, 0) === 0 && (
-                <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bids yet</div>
-              )}
-            </div>
-          </div>
+          {(() => {
+            const auctionBids = activeAuctions.filter(a => a.category === 'lnd').flatMap(a => 
+              a.bids.map(bid => ({ ...bid, source: 'auction' as const }))
+            )
+            const approvedBids = approvedLoot.filter(r => r.itemType === 'LND').map(r => ({
+              user: r.memberName,
+              icon: r.memberClass.icon,
+              dkp: r.dkpCost,
+              time: 'Approved',
+              source: 'approved' as const
+            }))
+            const allBids = [...auctionBids, ...approvedBids]
+            return (
+              <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">⚡</span>
+                  <span className="text-xs font-bold text-foreground">LND</span>
+                  <span className="ml-auto text-[10px] font-bold text-amber-400">
+                    {allBids.length} bidders
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
+                  {allBids.map((bid, i) => (
+                    <div key={`lnd-${i}`} className={`flex items-center justify-between text-xs py-1 px-2 rounded ${bid.source === 'approved' ? 'bg-accent/10 border border-accent/20' : 'bg-amber-500/10'}`}>
+                      <span className="text-foreground/80">{bid.icon} {bid.user}</span>
+                      <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
+                    </div>
+                  ))}
+                  {allBids.length === 0 && (
+                    <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bidders yet</div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       </div>
 
