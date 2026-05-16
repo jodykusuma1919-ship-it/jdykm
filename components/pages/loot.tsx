@@ -163,16 +163,46 @@ function LootHistoryModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   )
 }
 
-function NewAuctionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; onClose: () => void; onAddAuction: (auction: { id: number; name: string; icon: string; type: string; ilvl: number; category: 'fragmentCard' | 'timespace' | 'lnd'; bids: { user: string; icon: string; dkp: number; time: string }[]; timeRemaining: number }) => void }) {
   const [itemName, setItemName] = useState('')
   const [itemType, setItemType] = useState('Fragment Card')
   const [duration, setDuration] = useState('5')
 
   if (!isOpen) return null
 
+  const getIconForType = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return '🃏'
+      case 'Timespace': return '🔮'
+      case 'LND': return '⚡'
+      default: return '🎁'
+    }
+  }
+
+  const getCategoryForType = (type: string): 'fragmentCard' | 'timespace' | 'lnd' => {
+    switch (type) {
+      case 'Fragment Card': return 'fragmentCard'
+      case 'Timespace': return 'timespace'
+      case 'LND': return 'lnd'
+      default: return 'fragmentCard'
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would add the auction logic
+    
+    const newAuction = {
+      id: Date.now(),
+      name: itemName || itemType,
+      icon: getIconForType(itemType),
+      type: `${itemType} - Enhancement - Bound on pickup`,
+      ilvl: 0,
+      category: getCategoryForType(itemType),
+      bids: [],
+      timeRemaining: parseInt(duration) * 60,
+    }
+    
+    onAddAuction(newAuction)
     onClose()
     setItemName('')
     setItemType('Fragment Card')
@@ -248,12 +278,28 @@ function NewAuctionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   )
 }
 
+type Auction = {
+  id: number
+  name: string
+  icon: string
+  type: string
+  ilvl: number
+  category: 'fragmentCard' | 'timespace' | 'lnd'
+  bids: { user: string; icon: string; dkp: number; time: string }[]
+  timeRemaining: number
+}
+
 export function LootPage({ onNavigate }: LootPageProps) {
   const [showNewAuction, setShowNewAuction] = useState(false)
   const [showLootHistory, setShowLootHistory] = useState(false)
+  const [activeAuctions, setActiveAuctions] = useState<Auction[]>(auctions as Auction[])
   
   // Empty loot history - start fresh
   const lootHistory: { icon: string; type: string; text: string; time: string }[] = []
+
+  const handleAddAuction = (newAuction: Auction) => {
+    setActiveAuctions(prev => [...prev, newAuction])
+  }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -347,14 +393,23 @@ export function LootPage({ onNavigate }: LootPageProps) {
       </div>
 
       {/* Active status */}
-      <div className="text-[13px] text-muted-foreground mb-4 flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse-glow" />
-        3 active auctions in progress
-      </div>
+      {activeAuctions.length > 0 && (
+        <div className="text-[13px] text-muted-foreground mb-4 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse-glow" />
+          {activeAuctions.length} active auction{activeAuctions.length !== 1 ? 's' : ''} in progress
+        </div>
+      )}
 
       {/* Auction Grid */}
       <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
-        {auctions.map(auction => (
+        {activeAuctions.length === 0 && (
+          <div className="col-span-2 bg-card backdrop-blur-xl border border-border rounded-2xl p-10 text-center">
+            <div className="text-4xl mb-3">⚡</div>
+            <div className="text-sm text-muted-foreground">No active auctions</div>
+            <div className="text-xs text-muted-foreground/60 mt-1">Click "+ New Auction" to start one</div>
+          </div>
+        )}
+        {activeAuctions.map(auction => (
           <AuctionCard key={auction.id} auction={auction} onBid={() => {}} />
         ))}
 
@@ -391,7 +446,7 @@ export function LootPage({ onNavigate }: LootPageProps) {
         </div>
       </div>
 
-      <NewAuctionModal isOpen={showNewAuction} onClose={() => setShowNewAuction(false)} />
+      <NewAuctionModal isOpen={showNewAuction} onClose={() => setShowNewAuction(false)} onAddAuction={handleAddAuction} />
       <LootHistoryModal isOpen={showLootHistory} onClose={() => setShowLootHistory(false)} />
     </div>
   )
