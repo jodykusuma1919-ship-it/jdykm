@@ -56,9 +56,9 @@ function ApplyModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
       <div 
-        className="bg-card border border-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
+        className="bg-card border border-border rounded-2xl w-full max-w-lg my-auto mx-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-5 border-b border-primary/15">
@@ -207,9 +207,105 @@ function ApplyModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   )
 }
 
+function ManageRequirementsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [minGearScore, setMinGearScore] = useState('450')
+  const [minAttendance, setMinAttendance] = useState('75')
+  const [lookingFor, setLookingFor] = useState(['Tank', 'Healer'])
+
+  if (!isOpen) return null
+
+  const roles = ['Tank', 'Healer', 'DPS', 'Support', 'Flex']
+
+  const toggleRole = (role: string) => {
+    setLookingFor(prev => 
+      prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
+    )
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 border-b border-primary/15">
+          <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+            Manage Requirements
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">Set recruitment criteria for applicants</p>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Minimum Gear Score</label>
+            <input
+              type="number"
+              value={minGearScore}
+              onChange={e => setMinGearScore(e.target.value)}
+              placeholder="e.g. 450"
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Minimum Attendance Rate (%)</label>
+            <input
+              type="number"
+              value={minAttendance}
+              onChange={e => setMinAttendance(e.target.value)}
+              placeholder="e.g. 75"
+              min="0"
+              max="100"
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Looking For Roles</label>
+            <div className="flex flex-wrap gap-2">
+              {roles.map(role => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => toggleRole(role)}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all duration-200 ${
+                    lookingFor.includes(role) 
+                      ? 'bg-primary text-white' 
+                      : 'bg-white/5 text-muted-foreground border border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-3 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-transparent text-muted-foreground border border-white/15 hover:bg-white/5 hover:border-white/25"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+            >
+              Save Requirements
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export function RecruitmentPage() {
   const [applications, setApplications] = useState(recruits)
   const [showApplyModal, setShowApplyModal] = useState(false)
+  const [showRequirementsModal, setShowRequirementsModal] = useState(false)
 
   const handleAccept = (name: string) => {
     setApplications(apps => apps.filter(a => a.name !== name))
@@ -222,8 +318,11 @@ export function RecruitmentPage() {
           <span className="text-2xl">📋</span> Recruitment
         </h1>
         <div className="flex gap-2.5">
-          <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary">
-            ⚙ Manage Requirements
+          <button 
+            onClick={() => setShowRequirementsModal(true)}
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary"
+          >
+            Manage Requirements
           </button>
           <button 
             onClick={() => setShowApplyModal(true)}
@@ -316,6 +415,7 @@ export function RecruitmentPage() {
       </div>
 
       <ApplyModal isOpen={showApplyModal} onClose={() => setShowApplyModal(false)} />
+      <ManageRequirementsModal isOpen={showRequirementsModal} onClose={() => setShowRequirementsModal(false)} />
     </div>
   )
 }

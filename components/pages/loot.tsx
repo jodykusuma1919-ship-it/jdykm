@@ -109,6 +109,60 @@ function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: (
   )
 }
 
+function LootHistoryModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null
+
+  // Empty loot history - start fresh
+  const fullHistory: { icon: string; type: string; text: string; time: string }[] = []
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 border-b border-primary/15 flex items-center justify-between">
+          <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+            Loot History
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-muted-foreground transition-all">
+            X
+          </button>
+        </div>
+        <div className="p-5 overflow-y-auto max-h-[60vh]">
+          {fullHistory.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <div className="text-4xl mb-3">📜</div>
+              <div className="text-sm">No loot history yet</div>
+              <div className="text-xs text-muted-foreground/60 mt-1">Auction wins will appear here</div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {fullHistory.map((item, i) => (
+                <div key={i} className="flex items-start gap-3 p-3.5 bg-white/3 rounded-xl border border-primary/10">
+                  <div className="w-9 h-9 rounded-full shrink-0 bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-base">
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded mb-1 inline-block uppercase bg-primary/15 text-primary-light">
+                      {item.type}
+                    </span>
+                    <div 
+                      className="text-[13px] text-muted-foreground leading-relaxed [&_b]:text-foreground [&_b]:font-bold [&_.hl]:text-primary-light [&_.gold]:text-gold [&_.green]:text-accent"
+                      dangerouslySetInnerHTML={{ __html: item.text }}
+                    />
+                    <div className="text-[11px] text-muted-foreground/60 mt-0.5">{item.time}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function NewAuctionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [itemName, setItemName] = useState('')
   const [itemType, setItemType] = useState('Fragment Card')
@@ -196,12 +250,10 @@ function NewAuctionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
 
 export function LootPage({ onNavigate }: LootPageProps) {
   const [showNewAuction, setShowNewAuction] = useState(false)
+  const [showLootHistory, setShowLootHistory] = useState(false)
   
-  const lootHistory = [
-    { icon: '🃏', type: 'AUCTION WIN', text: '<b>Karath</b> won <span class="hl">Fragment Card x3</span> for <span class="gold">290 DKP</span>', time: 'Yesterday' },
-    { icon: '🔮', type: 'ROLL WIN', text: '<b>Lyrath</b> won <span class="hl">Time Space x3</span> with roll <span class="green">97</span>', time: '2 days ago' },
-    { icon: '⚡', type: 'AUCTION WIN', text: '<b>Valdris</b> won <span class="hl">LND Piece</span> for <span class="gold">520 DKP</span>', time: '3 days ago' },
-  ]
+  // Empty loot history - start fresh
+  const lootHistory: { icon: string; type: string; text: string; time: string }[] = []
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -210,8 +262,11 @@ export function LootPage({ onNavigate }: LootPageProps) {
           <span className="text-2xl">⚡</span> Loot Management
         </h1>
         <div className="flex gap-2.5">
-          <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary">
-            📜 Loot History
+          <button 
+            onClick={() => setShowLootHistory(true)}
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary"
+          >
+            Loot History
           </button>
           <button 
             onClick={() => setShowNewAuction(true)}
@@ -306,29 +361,38 @@ export function LootPage({ onNavigate }: LootPageProps) {
         {/* Loot History Card */}
         <div className="bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden">
           <div className="p-4 px-6 border-b border-primary/10 text-sm font-bold text-foreground">
-            📜 Recent Loot History
+            Recent Loot History
           </div>
-          {lootHistory.map((item, i) => (
-            <div key={i} className="flex items-start gap-3 p-3.5 px-6 border-b border-primary/6 transition-colors hover:bg-primary/5 last:border-b-0">
-              <div className="w-9 h-9 rounded-full shrink-0 bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-base">
-                {item.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded mb-1 inline-block uppercase bg-primary/15 text-primary-light">
-                  {item.type}
-                </span>
-                <div 
-                  className="text-[13px] text-muted-foreground leading-relaxed [&_b]:text-foreground [&_b]:font-bold [&_.hl]:text-primary-light [&_.gold]:text-gold [&_.green]:text-accent"
-                  dangerouslySetInnerHTML={{ __html: item.text }}
-                />
-                <div className="text-[11px] text-muted-foreground/60 mt-0.5">{item.time}</div>
-              </div>
+          {lootHistory.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <div className="text-4xl mb-3">📜</div>
+              <div className="text-sm">No loot history yet</div>
+              <div className="text-xs text-muted-foreground/60 mt-1">Auction wins will appear here</div>
             </div>
-          ))}
+          ) : (
+            lootHistory.map((item, i) => (
+              <div key={i} className="flex items-start gap-3 p-3.5 px-6 border-b border-primary/6 transition-colors hover:bg-primary/5 last:border-b-0">
+                <div className="w-9 h-9 rounded-full shrink-0 bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-base">
+                  {item.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded mb-1 inline-block uppercase bg-primary/15 text-primary-light">
+                    {item.type}
+                  </span>
+                  <div 
+                    className="text-[13px] text-muted-foreground leading-relaxed [&_b]:text-foreground [&_b]:font-bold [&_.hl]:text-primary-light [&_.gold]:text-gold [&_.green]:text-accent"
+                    dangerouslySetInnerHTML={{ __html: item.text }}
+                  />
+                  <div className="text-[11px] text-muted-foreground/60 mt-0.5">{item.time}</div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
       <NewAuctionModal isOpen={showNewAuction} onClose={() => setShowNewAuction(false)} />
+      <LootHistoryModal isOpen={showLootHistory} onClose={() => setShowLootHistory(false)} />
     </div>
   )
 }

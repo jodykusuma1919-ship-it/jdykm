@@ -197,13 +197,8 @@ export function DkpPage() {
   const dkpLeaders = [...allMembers].sort((a, b) => b.dkp - a.dkp).slice(0, 8)
   const maxDkp = dkpLeaders[0]?.dkp || 1
 
-  const dkpLogs = [
-    { icon: '⚔', type: 'AWARD', text: '<b>Valdris</b> +<span class="gold">150 DKP</span> — Dragon Lair Completion', time: '2 min ago' },
-    { icon: '🧝', type: 'SPEND', text: '<b>Selara</b> -<span class="red">420 DKP</span> — Loot: Fragment Card ×3', time: '8 min ago' },
-    { icon: '🛡', type: 'AWARD', text: '<b>Thorgur</b> +<span class="gold">200 DKP</span> — Raid Leader Bonus', time: '1hr ago' },
-    { icon: '🧙', type: 'DEDUCT', text: '<b>Miravel</b> -<span class="red">80 DKP</span> — Missed Raid Penalty', time: '3hr ago' },
-    { icon: '🏹', type: 'AWARD', text: '<b>Daerith</b> +<span class="gold">100 DKP</span> — Weekly Attendance Bonus', time: 'Yesterday' },
-  ]
+// Empty DKP logs - start fresh
+  const dkpLogs: { icon: string; type: string; text: string; time: string }[] = []
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -226,9 +221,9 @@ export function DkpPage() {
 
       {/* Widgets */}
       <div className="grid grid-cols-4 gap-4 mb-7 max-md:grid-cols-2 max-sm:grid-cols-1">
-        <WidgetCard icon="💎" value="48,200" label="Total DKP Pool" glowColor="bg-gold" />
-        <WidgetCard icon="📈" value="1,240" label="Awarded This Week" glowColor="bg-accent" />
-        <WidgetCard icon="📉" value="890" label="Spent This Week" glowColor="bg-destructive" />
+        <WidgetCard icon="💎" value="0" label="Total DKP Pool" glowColor="bg-gold" />
+        <WidgetCard icon="📈" value="0" label="Awarded This Week" glowColor="bg-accent" />
+        <WidgetCard icon="📉" value="0" label="Spent This Week" glowColor="bg-destructive" />
         <WidgetCard icon="🔄" value="6" label="Days to Reset" glowColor="bg-primary" />
       </div>
 
@@ -237,35 +232,51 @@ export function DkpPage() {
         {/* DKP Leaderboard */}
         <div className="bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden">
           <div className="p-4 px-6 border-b border-primary/10 text-sm font-bold text-foreground">
-            🏆 DKP Leaderboard
+            DKP Leaderboard
           </div>
-          {dkpLeaders.map((m, i) => (
-            <LeaderboardItem key={m.id} rank={i + 1} member={m} value={m.dkp} maxValue={maxDkp} type="dkp" />
-          ))}
+          {dkpLeaders.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <div className="text-4xl mb-3">🏆</div>
+              <div className="text-sm">No members yet</div>
+              <div className="text-xs text-muted-foreground/60 mt-1">Add members to see the leaderboard</div>
+            </div>
+          ) : (
+            dkpLeaders.map((m, i) => (
+              <LeaderboardItem key={m.id} rank={i + 1} member={m} value={m.dkp} maxValue={maxDkp} type="dkp" />
+            ))
+          )}
         </div>
 
         {/* Recent DKP Logs */}
         <div className="bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden">
           <div className="p-4 px-6 border-b border-primary/10 text-sm font-bold text-foreground">
-            📋 Recent DKP Logs
+            Recent DKP Logs
           </div>
-          {dkpLogs.map((log, i) => (
-            <div key={i} className="flex items-start gap-3 p-3.5 px-6 border-b border-primary/6 transition-colors hover:bg-primary/5 last:border-b-0">
-              <div className="w-9 h-9 rounded-full shrink-0 bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-base">
-                {log.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className={`text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded mb-1 inline-block uppercase ${log.type === 'AWARD' ? 'bg-gold/15 text-gold' : log.type === 'SPEND' ? 'bg-primary/15 text-primary-light' : 'bg-destructive/12 text-destructive'}`}>
-                  {log.type}
-                </span>
-                <div 
-                  className="text-[13px] text-muted-foreground leading-relaxed [&_b]:text-foreground [&_b]:font-bold [&_.gold]:text-gold [&_.red]:text-destructive"
-                  dangerouslySetInnerHTML={{ __html: log.text }}
-                />
-                <div className="text-[11px] text-muted-foreground/60 mt-0.5">{log.time}</div>
-              </div>
+          {dkpLogs.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <div className="text-4xl mb-3">📋</div>
+              <div className="text-sm">No DKP logs yet</div>
+              <div className="text-xs text-muted-foreground/60 mt-1">Award or deduct DKP to see activity</div>
             </div>
-          ))}
+          ) : (
+            dkpLogs.map((log, i) => (
+              <div key={i} className="flex items-start gap-3 p-3.5 px-6 border-b border-primary/6 transition-colors hover:bg-primary/5 last:border-b-0">
+                <div className="w-9 h-9 rounded-full shrink-0 bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-base">
+                  {log.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className={`text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded mb-1 inline-block uppercase ${log.type === 'AWARD' ? 'bg-gold/15 text-gold' : log.type === 'SPEND' ? 'bg-primary/15 text-primary-light' : 'bg-destructive/12 text-destructive'}`}>
+                    {log.type}
+                  </span>
+                  <div 
+                    className="text-[13px] text-muted-foreground leading-relaxed [&_b]:text-foreground [&_b]:font-bold [&_.gold]:text-gold [&_.red]:text-destructive"
+                    dangerouslySetInnerHTML={{ __html: log.text }}
+                  />
+                  <div className="text-[11px] text-muted-foreground/60 mt-0.5">{log.time}</div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
