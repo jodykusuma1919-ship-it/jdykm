@@ -8,6 +8,26 @@ export interface BidLimits {
   lnd: number
 }
 
+export interface EventBidLimits {
+  gl: BidLimits
+  woe: BidLimits
+}
+
+export interface LootRequest {
+  id: string
+  memberId: number
+  memberName: string
+  memberClass: { icon: string; name: string }
+  itemType: 'Fragment Card' | 'LND' | 'Timespace'
+  quantity: number
+  dkpCost: number
+  note: string
+  status: 'pending' | 'approved' | 'declined'
+  requestedAt: string
+  processedAt?: string
+  processedBy?: string
+}
+
 export interface LootRewards {
   fragmentCard: { dkpCost: number; quantity: number }
   timespace: { dkpCost: number; quantity: number }
@@ -17,14 +37,20 @@ export interface LootRewards {
 export interface GuildSettings {
   selectedPreset: string
   bidLimits: BidLimits
+  eventBidLimits: EventBidLimits
   lootRewards: LootRewards
+  lootRequests: LootRequest[]
+  approvedLoot: LootRequest[]
 }
 
 interface GuildSettingsContextType {
   settings: GuildSettings
   updateBidLimits: (limits: BidLimits) => void
+  updateEventBidLimits: (eventType: 'gl' | 'woe', limits: BidLimits) => void
   updateLootRewards: (rewards: LootRewards) => void
   updatePreset: (preset: string) => void
+  addLootRequest: (request: Omit<LootRequest, 'id' | 'status' | 'requestedAt'>) => void
+  processLootRequest: (requestId: string, status: 'approved' | 'declined', processedBy: string) => void
   saveSettings: () => void
   isLoading: boolean
 }
@@ -32,11 +58,17 @@ interface GuildSettingsContextType {
 const defaultSettings: GuildSettings = {
   selectedPreset: '222',
   bidLimits: { fragmentCard: 2, timespace: 2, lnd: 2 },
+  eventBidLimits: {
+    gl: { fragmentCard: 2, timespace: 2, lnd: 2 },
+    woe: { fragmentCard: 2, timespace: 2, lnd: 2 },
+  },
   lootRewards: {
     fragmentCard: { dkpCost: 100, quantity: 3 },
     timespace: { dkpCost: 150, quantity: 2 },
     lnd: { dkpCost: 200, quantity: 1 },
-  }
+  },
+  lootRequests: [],
+  approvedLoot: [],
 }
 
 const presetValues: Record<string, BidLimits> = {
@@ -64,7 +96,10 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
         setSettings({
           selectedPreset: parsed.selectedPreset || '222',
           bidLimits: bidLimits,
+          eventBidLimits: parsed.eventBidLimits || defaultSettings.eventBidLimits,
           lootRewards: parsed.lootRewards || defaultSettings.lootRewards,
+          lootRequests: parsed.lootRequests || [],
+          approvedLoot: parsed.approvedLoot || [],
         })
       } catch (e) {
         console.error('Failed to parse guild settings:', e)
@@ -78,6 +113,16 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
       ...prev,
       selectedPreset: 'custom',
       bidLimits: limits,
+    }))
+  }
+
+  const updateEventBidLimits = (eventType: 'gl' | 'woe', limits: BidLimits) => {
+    setSettings(prev => ({
+      ...prev,
+      eventBidLimits: {
+        ...prev.eventBidLimits,
+        [eventType]: limits,
+      },
     }))
   }
 
@@ -100,6 +145,56 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  const addLootRequest = (request: Omit<LootRequest, 'id' | 'status' | 'requestedAt'>) => {
+    const newRequest: LootRequest = {
+      ...request,
+      id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      status: 'pending',
+      requestedAt: new Date().toISOString(),
+    }
+    setSettings(prev => ({
+      ...prev,
+      lootRequests: [...prev.lootRequests, newRequest],
+    }))
+    // Auto-save when adding request
+    setTimeout(() => {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+        ...settings,
+        lootRequests: [...settings.lootRequests, newRequest],
+      }))
+    }, 0)
+  }
+
+  const processLootRequest = (requestId: string, status: 'approved' | 'declined', processedBy: string) => {
+    setSettings(prev => {
+      const request = prev.lootRequests.find(r => r.id === requestId)
+      if (!request) return prev
+
+      const processedRequest: LootRequest = {
+        ...request,
+        status,
+        processedAt: new Date().toISOString(),
+        processedBy,
+      }
+
+      const updatedRequests = prev.lootRequests.filter(r => r.id !== requestId)
+      const updatedApprovedLoot = status === 'approved' 
+        ? [...prev.approvedLoot, processedRequest]
+        : prev.approvedLoot
+
+      const newSettings = {
+        ...prev,
+        lootRequests: updatedRequests,
+        approvedLoot: updatedApprovedLoot,
+      }
+
+      // Auto-save when processing request
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(newSettings))
+      
+      return newSettings
+    })
+  }
+
   const saveSettings = () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
   }
@@ -108,8 +203,11 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
     <GuildSettingsContext.Provider value={{
       settings,
       updateBidLimits,
+      updateEventBidLimits,
       updateLootRewards,
       updatePreset,
+      addLootRequest,
+      processLootRequest,
       saveSettings,
       isLoading,
     }}>

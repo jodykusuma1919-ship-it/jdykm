@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { getRoleColor } from '@/lib/roles'
+import { useGuildSettings, type LootRequest } from '@/contexts/guild-settings-context'
 
 // Sample data for current user
 const currentUserData = {
+  id: 1,
   name: 'Thalderin',
   role: 'Guild Master' as const,
   class: { icon: '🧙', name: 'Mage' },
@@ -87,15 +89,23 @@ function RemainingBidsCard({ type, icon, remaining, limit, color }: {
   )
 }
 
-function RequestModal({ isOpen, onClose, type }: { isOpen: boolean; onClose: () => void; type: string }) {
+function RequestModal({ isOpen, onClose, type, dkpCost, onSubmit }: { 
+  isOpen: boolean
+  onClose: () => void
+  type: string
+  dkpCost: number
+  onSubmit: (quantity: number, note: string) => void
+}) {
   const [quantity, setQuantity] = useState('1')
   const [note, setNote] = useState('')
 
   if (!isOpen) return null
 
+  const totalCost = dkpCost * parseInt(quantity)
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would submit the request
+    onSubmit(parseInt(quantity), note)
     onClose()
     setQuantity('1')
     setNote('')
@@ -127,6 +137,22 @@ function RequestModal({ isOpen, onClose, type }: { isOpen: boolean; onClose: () 
               <option value="5">5</option>
             </select>
           </div>
+          
+          {/* DKP Cost Display */}
+          <div className="bg-primary/10 border border-primary/25 rounded-xl p-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">DKP Cost per item:</span>
+              <span className="font-mono font-bold text-primary-light">{dkpCost} DKP</span>
+            </div>
+            <div className="flex items-center justify-between text-sm mt-2 pt-2 border-t border-primary/20">
+              <span className="text-foreground font-semibold">Total DKP Cost:</span>
+              <span className="font-mono font-bold text-gold text-lg">{totalCost} DKP</span>
+            </div>
+            <div className="text-[11px] text-muted-foreground/70 mt-2">
+              Your DKP will be deducted once approved by Guild Master or Vice Master
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-1.5">Note (Optional)</label>
             <textarea
@@ -158,12 +184,105 @@ function RequestModal({ isOpen, onClose, type }: { isOpen: boolean; onClose: () 
   )
 }
 
-export function MyDkpPage() {
-  const [requestModal, setRequestModal] = useState<{ open: boolean; type: string }>({ open: false, type: '' })
+function PendingRequestCard({ request }: { request: LootRequest }) {
+  const getItemIcon = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return '🃏'
+      case 'LND': return '⚡'
+      case 'Timespace': return '🔮'
+      default: return '🎁'
+    }
+  }
 
-  const openRequest = (type: string) => {
+  const getItemColor = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return 'border-purple-500/25 bg-purple-500/5'
+      case 'LND': return 'border-amber-500/25 bg-amber-500/5'
+      case 'Timespace': return 'border-cyan-500/25 bg-cyan-500/5'
+      default: return 'border-primary/25 bg-primary/5'
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} min ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  }
+
+  return (
+    <div className={`border rounded-xl p-4 ${getItemColor(request.itemType)}`}>
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{getItemIcon(request.itemType)}</span>
+          <div>
+            <div className="text-sm font-bold text-foreground">{request.itemType}</div>
+            <div className="text-xs text-muted-foreground">x{request.quantity}</div>
+          </div>
+        </div>
+        <span className="text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded uppercase bg-gold/20 text-gold border border-gold/30 animate-pulse">
+          PENDING
+        </span>
+      </div>
+      <div className="flex items-center justify-between text-xs mt-3 pt-3 border-t border-white/10">
+        <span className="text-muted-foreground">DKP Cost:</span>
+        <span className="font-mono font-bold text-gold">{request.dkpCost} DKP</span>
+      </div>
+      <div className="text-[11px] text-muted-foreground/60 mt-2">
+        Requested {formatDate(request.requestedAt)}
+      </div>
+      {request.note && (
+        <div className="text-[11px] text-muted-foreground/80 mt-1 italic">
+          Note: {request.note}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function MyDkpPage() {
+  const { settings, addLootRequest } = useGuildSettings()
+  const [requestModal, setRequestModal] = useState<{ open: boolean; type: 'Fragment Card' | 'LND' | 'Timespace' }>({ open: false, type: 'Fragment Card' })
+
+  const openRequest = (type: 'Fragment Card' | 'LND' | 'Timespace') => {
     setRequestModal({ open: true, type })
   }
+
+  const getDkpCost = (type: 'Fragment Card' | 'LND' | 'Timespace') => {
+    switch (type) {
+      case 'Fragment Card': return settings.lootRewards.fragmentCard.dkpCost
+      case 'Timespace': return settings.lootRewards.timespace.dkpCost
+      case 'LND': return settings.lootRewards.lnd.dkpCost
+    }
+  }
+
+  const handleSubmitRequest = (quantity: number, note: string) => {
+    const dkpCost = getDkpCost(requestModal.type) * quantity
+    addLootRequest({
+      memberId: currentUserData.id,
+      memberName: currentUserData.name,
+      memberClass: currentUserData.class,
+      itemType: requestModal.type,
+      quantity,
+      dkpCost,
+      note,
+    })
+  }
+
+  // Get pending requests for current user
+  const myPendingRequests = settings.lootRequests.filter(
+    r => r.memberId === currentUserData.id && r.status === 'pending'
+  )
+
+  // Calculate total pending DKP
+  const totalPendingDkp = myPendingRequests.reduce((sum, r) => sum + r.dkpCost, 0)
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -188,6 +307,7 @@ export function MyDkpPage() {
           icon="💎" 
           value={currentUserData.dkp.toLocaleString()} 
           label="Current DKP" 
+          subLabel={totalPendingDkp > 0 ? `${totalPendingDkp} DKP pending` : undefined}
           color="bg-gold" 
         />
         <StatCard 
@@ -209,6 +329,21 @@ export function MyDkpPage() {
           color="bg-primary" 
         />
       </div>
+
+      {/* Pending Requests Section */}
+      {myPendingRequests.length > 0 && (
+        <div className="mb-7">
+          <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+            ⏳ Your Pending Requests
+            <span className="text-xs font-normal text-gold">({myPendingRequests.length} awaiting approval)</span>
+          </h2>
+          <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">
+            {myPendingRequests.map(request => (
+              <PendingRequestCard key={request.id} request={request} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Remaining Bids Section */}
       <div className="mb-7">
@@ -261,8 +396,11 @@ export function MyDkpPage() {
                 <div className="text-xs text-muted-foreground">Request allocation</div>
               </div>
             </div>
-            <div className="text-xs text-primary-light flex items-center gap-1">
-              Click to request <span className="ml-auto">→</span>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-primary-light flex items-center gap-1">
+                Click to request <span className="ml-auto">→</span>
+              </span>
+              <span className="font-mono text-gold">{settings.lootRewards.fragmentCard.dkpCost} DKP</span>
             </div>
           </button>
 
@@ -279,8 +417,11 @@ export function MyDkpPage() {
                 <div className="text-xs text-muted-foreground">Request allocation</div>
               </div>
             </div>
-            <div className="text-xs text-primary-light flex items-center gap-1">
-              Click to request <span className="ml-auto">→</span>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-primary-light flex items-center gap-1">
+                Click to request <span className="ml-auto">→</span>
+              </span>
+              <span className="font-mono text-gold">{settings.lootRewards.lnd.dkpCost} DKP</span>
             </div>
           </button>
 
@@ -297,8 +438,11 @@ export function MyDkpPage() {
                 <div className="text-xs text-muted-foreground">Request allocation</div>
               </div>
             </div>
-            <div className="text-xs text-primary-light flex items-center gap-1">
-              Click to request <span className="ml-auto">→</span>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-primary-light flex items-center gap-1">
+                Click to request <span className="ml-auto">→</span>
+              </span>
+              <span className="font-mono text-gold">{settings.lootRewards.timespace.dkpCost} DKP</span>
             </div>
           </button>
         </div>
@@ -328,8 +472,10 @@ export function MyDkpPage() {
 
       <RequestModal 
         isOpen={requestModal.open} 
-        onClose={() => setRequestModal({ open: false, type: '' })} 
+        onClose={() => setRequestModal({ open: false, type: 'Fragment Card' })} 
         type={requestModal.type}
+        dkpCost={getDkpCost(requestModal.type)}
+        onSubmit={handleSubmitRequest}
       />
     </div>
   )

@@ -134,7 +134,7 @@ function StepperInput({
 }
 
 export function SettingsPage({ onNavigate, userRole }: SettingsPageProps) {
-  const { settings, updateBidLimits, updateLootRewards, updatePreset, saveSettings, isLoading } = useGuildSettings()
+  const { settings, updateBidLimits, updateEventBidLimits, updateLootRewards, updatePreset, saveSettings, isLoading } = useGuildSettings()
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const isFullAdmin = canEditAllSettings(userRole)
   const canEditBattle = canEditBattleSettings(userRole)
@@ -353,7 +353,7 @@ export function SettingsPage({ onNavigate, userRole }: SettingsPageProps) {
           {/* Fragment Card Rewards */}
           <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl">🃏</span>
+              <span className="text-xl">��</span>
               <span className="text-sm font-bold text-foreground">Fragment Card</span>
             </div>
             <div className="space-y-4">
@@ -441,6 +441,106 @@ export function SettingsPage({ onNavigate, userRole }: SettingsPageProps) {
                   value={lootRewards.lnd.quantity}
                   onChange={(val) => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, quantity: val } }))}
                   min={1}
+                  max={10}
+                  disabled={!isFullAdmin}
+                  colorClass="border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* GL & WOE Event Bid Limits */}
+      <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6 mb-6">
+        <div className="border-b border-primary/15 pb-3 mb-5">
+          <div className="text-[15px] font-bold text-foreground flex items-center gap-2">
+            ⚔ Event Bid Limits (GL & WOE)
+            <span className="text-[11px] font-medium text-muted-foreground/70 ml-2">Max bids per member per event</span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Configure separate bid limits for Guild League (GL) and War of Emperium (WOE) events
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6 max-md:grid-cols-1">
+          {/* GL Bid Limits */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xl">🏆</span>
+              <span className="text-sm font-bold text-foreground">Guild League (GL)</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gold/20 text-gold ml-auto">2-2-2</span>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Fragment Card</span>
+                <StepperInput
+                  value={settings.eventBidLimits.gl.fragmentCard}
+                  onChange={(val) => isFullAdmin && updateEventBidLimits('gl', { ...settings.eventBidLimits.gl, fragmentCard: val })}
+                  min={0}
+                  max={10}
+                  disabled={!isFullAdmin}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Timespace</span>
+                <StepperInput
+                  value={settings.eventBidLimits.gl.timespace}
+                  onChange={(val) => isFullAdmin && updateEventBidLimits('gl', { ...settings.eventBidLimits.gl, timespace: val })}
+                  min={0}
+                  max={10}
+                  disabled={!isFullAdmin}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">LND</span>
+                <StepperInput
+                  value={settings.eventBidLimits.gl.lnd}
+                  onChange={(val) => isFullAdmin && updateEventBidLimits('gl', { ...settings.eventBidLimits.gl, lnd: val })}
+                  min={0}
+                  max={10}
+                  disabled={!isFullAdmin}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* WOE Bid Limits */}
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xl">⚔</span>
+              <span className="text-sm font-bold text-foreground">War of Emperium (WOE)</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 ml-auto">2-2-2</span>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Fragment Card</span>
+                <StepperInput
+                  value={settings.eventBidLimits.woe.fragmentCard}
+                  onChange={(val) => isFullAdmin && updateEventBidLimits('woe', { ...settings.eventBidLimits.woe, fragmentCard: val })}
+                  min={0}
+                  max={10}
+                  disabled={!isFullAdmin}
+                  colorClass="border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Timespace</span>
+                <StepperInput
+                  value={settings.eventBidLimits.woe.timespace}
+                  onChange={(val) => isFullAdmin && updateEventBidLimits('woe', { ...settings.eventBidLimits.woe, timespace: val })}
+                  min={0}
+                  max={10}
+                  disabled={!isFullAdmin}
+                  colorClass="border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">LND</span>
+                <StepperInput
+                  value={settings.eventBidLimits.woe.lnd}
+                  onChange={(val) => isFullAdmin && updateEventBidLimits('woe', { ...settings.eventBidLimits.woe, lnd: val })}
+                  min={0}
                   max={10}
                   disabled={!isFullAdmin}
                   colorClass="border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500"

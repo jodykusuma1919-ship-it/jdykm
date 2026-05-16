@@ -71,6 +71,11 @@ export function canBidOnLoot(role: GuildRole): boolean {
   return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer', 'Raid Leader', 'Member', 'Recruit'].includes(role)
 }
 
+export function canApproveLootRequests(role: GuildRole): boolean {
+  // Only Admin, Guild Master, Vice Master can approve/decline loot requests
+  return ['Admin', 'Guild Master', 'Vice Master'].includes(role)
+}
+
 export function getRoleLevel(role: GuildRole): number {
   return ROLE_LEVELS[role] || 0
 }

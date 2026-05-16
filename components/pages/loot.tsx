@@ -5,7 +5,7 @@ import type { Page } from '@/app/page'
 import { auctions } from '@/lib/data'
 import { canManageLoot } from '@/lib/roles'
 import type { GuildRole } from '@/lib/roles'
-import { useGuildSettings } from '@/contexts/guild-settings-context'
+import { useGuildSettings, type LootRequest } from '@/contexts/guild-settings-context'
 
 interface LootPageProps {
   onNavigate: (page: Page) => void
@@ -13,7 +13,6 @@ interface LootPageProps {
 }
 
 // Display setting options (20 - 50 range)
-const DISPLAY_OPTIONS = [20, 25, 30, 40, 50] as const
 const BIDS_PER_PAGE = 20
 
 // Guild loot inventory remaining
@@ -285,6 +284,147 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
   )
 }
 
+// Pending Request Card for approval panel
+function PendingRequestApprovalCard({ 
+  request, 
+  onApprove, 
+  onDecline, 
+  canManage 
+}: { 
+  request: LootRequest
+  onApprove: () => void
+  onDecline: () => void
+  canManage: boolean
+}) {
+  const getItemIcon = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return '🃏'
+      case 'LND': return '⚡'
+      case 'Timespace': return '🔮'
+      default: return '🎁'
+    }
+  }
+
+  const getItemColor = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return 'border-purple-500/25 bg-purple-500/5'
+      case 'LND': return 'border-amber-500/25 bg-amber-500/5'
+      case 'Timespace': return 'border-cyan-500/25 bg-cyan-500/5'
+      default: return 'border-primary/25 bg-primary/5'
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} min ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  }
+
+  return (
+    <div className={`border rounded-xl p-4 ${getItemColor(request.itemType)}`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{getItemIcon(request.itemType)}</span>
+          <div>
+            <div className="text-sm font-bold text-foreground">{request.itemType}</div>
+            <div className="text-xs text-muted-foreground">x{request.quantity}</div>
+          </div>
+        </div>
+        <span className="text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded uppercase bg-gold/20 text-gold border border-gold/30 animate-pulse">
+          PENDING
+        </span>
+      </div>
+
+      {/* Requester Info */}
+      <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/10">
+        <span className="text-lg">{request.memberClass.icon}</span>
+        <div>
+          <div className="text-sm font-semibold text-foreground">{request.memberName}</div>
+          <div className="text-[11px] text-muted-foreground">{request.memberClass.name}</div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-xs mb-2">
+        <span className="text-muted-foreground">DKP Cost:</span>
+        <span className="font-mono font-bold text-gold">{request.dkpCost} DKP</span>
+      </div>
+
+      <div className="text-[11px] text-muted-foreground/60 mb-3">
+        Requested {formatDate(request.requestedAt)}
+      </div>
+
+      {request.note && (
+        <div className="text-[11px] text-muted-foreground/80 mb-3 p-2 bg-white/5 rounded-lg italic">
+          Note: {request.note}
+        </div>
+      )}
+
+      {canManage && (
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={onDecline}
+            className="flex-1 py-2 px-3 rounded-lg cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 bg-destructive/20 text-destructive border border-destructive/30 hover:bg-destructive/30"
+          >
+            Decline
+          </button>
+          <button
+            onClick={onApprove}
+            className="flex-1 py-2 px-3 rounded-lg border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-accent to-green-600 text-white shadow-[0_4px_15px_rgba(34,197,94,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(34,197,94,0.5)]"
+          >
+            Approve
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Approved Loot Card
+function ApprovedLootCard({ request }: { request: LootRequest }) {
+  const getItemIcon = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return '🃏'
+      case 'LND': return '⚡'
+      case 'Timespace': return '🔮'
+      default: return '🎁'
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  return (
+    <div className="flex items-center gap-4 p-4 px-6 border-b border-primary/6 last:border-b-0 hover:bg-primary/5 transition-colors">
+      <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl bg-accent/20">
+        {getItemIcon(request.itemType)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{request.memberClass.icon}</span>
+          <span className="text-sm font-semibold text-foreground">{request.memberName}</span>
+        </div>
+        <div className="text-xs text-muted-foreground/70">
+          Received {request.itemType} x{request.quantity}
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="font-mono text-sm font-bold text-gold">-{request.dkpCost} DKP</div>
+        <div className="text-[11px] text-muted-foreground/60">{formatDate(request.processedAt || request.requestedAt)}</div>
+      </div>
+    </div>
+  )
+}
+
 type Auction = {
   id: number
   name: string
@@ -298,19 +438,28 @@ type Auction = {
 
 export function LootPage({ onNavigate, userRole }: LootPageProps) {
   const canManage = canManageLoot(userRole)
-  const { settings } = useGuildSettings()
+  const canApproveRequests = ['Admin', 'Guild Master', 'Vice Master'].includes(userRole)
+  const { settings, processLootRequest } = useGuildSettings()
   const [showNewAuction, setShowNewAuction] = useState(false)
   const [showLootHistory, setShowLootHistory] = useState(false)
   const [activeAuctions, setActiveAuctions] = useState<Auction[]>(auctions as Auction[])
+  const [activeTab, setActiveTab] = useState<'auctions' | 'requests' | 'approved'>('auctions')
   
   // Get bid limits from shared settings
   const bidLimits = settings.bidLimits
-  
-  // Empty loot history - start fresh
-  const lootHistory: { icon: string; type: string; text: string; time: string }[] = []
+  const pendingRequests = settings.lootRequests.filter(r => r.status === 'pending')
+  const approvedLoot = settings.approvedLoot
 
   const handleAddAuction = (newAuction: Auction) => {
     setActiveAuctions(prev => [...prev, newAuction])
+  }
+
+  const handleApproveRequest = (requestId: string) => {
+    processLootRequest(requestId, 'approved', 'Guild Master')
+  }
+
+  const handleDeclineRequest = (requestId: string) => {
+    processLootRequest(requestId, 'declined', 'Guild Master')
   }
 
   return (
@@ -385,21 +534,36 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
         </div>
       </div>
 
-      {/* Bid Limit Banner */}
+      {/* Bid Limit Banner - GL & WOE */}
       <div className="flex items-center gap-3.5 flex-wrap bg-primary/8 border border-primary/25 rounded-xl p-3 px-5 mb-5">
         <div className="flex items-center gap-2 text-[13px] font-bold text-primary-light">
           🔨 Max Bid Limits:
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            Fragment Card <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">{bidLimits.fragmentCard}</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            Timespace <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">{bidLimits.timespace}</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            LND <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">{bidLimits.lnd}</span>
-          </span>
+        <div className="flex gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-gold">GL:</span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-primary/18 border border-primary/30 text-primary-light">
+              FC <span className="font-mono text-white bg-primary rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.gl.fragmentCard}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-primary/18 border border-primary/30 text-primary-light">
+              TS <span className="font-mono text-white bg-primary rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.gl.timespace}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-primary/18 border border-primary/30 text-primary-light">
+              LND <span className="font-mono text-white bg-primary rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.gl.lnd}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-amber-400">WOE:</span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-amber-500/18 border border-amber-500/30 text-amber-300">
+              FC <span className="font-mono text-white bg-amber-600 rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.woe.fragmentCard}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-amber-500/18 border border-amber-500/30 text-amber-300">
+              TS <span className="font-mono text-white bg-amber-600 rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.woe.timespace}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-amber-500/18 border border-amber-500/30 text-amber-300">
+              LND <span className="font-mono text-white bg-amber-600 rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.woe.lnd}</span>
+            </span>
+          </div>
         </div>
         {canManage && (
           <button onClick={() => onNavigate('settings')} className="ml-auto text-xs text-primary-light cursor-pointer underline whitespace-nowrap">
@@ -408,59 +572,122 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
         )}
       </div>
 
-      {/* Active status */}
-      {activeAuctions.length > 0 && (
-        <div className="text-[13px] text-muted-foreground mb-4 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse-glow" />
-          {activeAuctions.length} active auction{activeAuctions.length !== 1 ? 's' : ''} in progress
+      {/* Tab Navigation */}
+      <div className="flex gap-2 mb-5 border-b border-primary/15 pb-3">
+        <button
+          onClick={() => setActiveTab('auctions')}
+          className={`py-2 px-4 rounded-t-lg font-sans text-sm font-bold tracking-wide transition-all duration-200 ${
+            activeTab === 'auctions'
+              ? 'bg-primary/20 text-primary-light border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+          }`}
+        >
+          ⚡ Auctions {activeAuctions.length > 0 && `(${activeAuctions.length})`}
+        </button>
+        <button
+          onClick={() => setActiveTab('requests')}
+          className={`py-2 px-4 rounded-t-lg font-sans text-sm font-bold tracking-wide transition-all duration-200 relative ${
+            activeTab === 'requests'
+              ? 'bg-primary/20 text-primary-light border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+          }`}
+        >
+          📋 Pending Requests
+          {pendingRequests.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold text-[10px] font-bold text-black flex items-center justify-center animate-pulse">
+              {pendingRequests.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('approved')}
+          className={`py-2 px-4 rounded-t-lg font-sans text-sm font-bold tracking-wide transition-all duration-200 ${
+            activeTab === 'approved'
+              ? 'bg-primary/20 text-primary-light border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+          }`}
+        >
+          ✅ Approved Loot {approvedLoot.length > 0 && `(${approvedLoot.length})`}
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'auctions' && (
+        <>
+          {/* Active status */}
+          {activeAuctions.length > 0 && (
+            <div className="text-[13px] text-muted-foreground mb-4 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse-glow" />
+              {activeAuctions.length} active auction{activeAuctions.length !== 1 ? 's' : ''} in progress
+            </div>
+          )}
+
+          {/* Auction Grid */}
+          <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
+            {activeAuctions.length === 0 && (
+              <div className="col-span-2 bg-card backdrop-blur-xl border border-border rounded-2xl p-10 text-center">
+                <div className="text-4xl mb-3">⚡</div>
+                <div className="text-sm text-muted-foreground">No active auctions</div>
+                <div className="text-xs text-muted-foreground/60 mt-1">Click &quot;+ New Auction&quot; to start one</div>
+              </div>
+            )}
+            {activeAuctions.map(auction => (
+              <AuctionCard key={auction.id} auction={auction} onBid={() => {}} bidLimits={bidLimits} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'requests' && (
+        <div>
+          {!canApproveRequests && (
+            <div className="bg-gold/10 border border-gold/30 rounded-xl p-4 mb-5">
+              <div className="text-sm text-gold font-semibold">Only Guild Master or Vice Master can approve requests</div>
+              <div className="text-xs text-muted-foreground mt-1">Contact leadership if you need to process requests</div>
+            </div>
+          )}
+
+          {pendingRequests.length === 0 ? (
+            <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-10 text-center">
+              <div className="text-4xl mb-3">📋</div>
+              <div className="text-sm text-muted-foreground">No pending requests</div>
+              <div className="text-xs text-muted-foreground/60 mt-1">Member requests will appear here</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2 max-sm:grid-cols-1">
+              {pendingRequests.map(request => (
+                <PendingRequestApprovalCard
+                  key={request.id}
+                  request={request}
+                  onApprove={() => handleApproveRequest(request.id)}
+                  onDecline={() => handleDeclineRequest(request.id)}
+                  canManage={canApproveRequests}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Auction Grid */}
-      <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
-        {activeAuctions.length === 0 && (
-          <div className="col-span-2 bg-card backdrop-blur-xl border border-border rounded-2xl p-10 text-center">
-            <div className="text-4xl mb-3">⚡</div>
-            <div className="text-sm text-muted-foreground">No active auctions</div>
-            <div className="text-xs text-muted-foreground/60 mt-1">Click "+ New Auction" to start one</div>
-          </div>
-        )}
-        {activeAuctions.map(auction => (
-          <AuctionCard key={auction.id} auction={auction} onBid={() => {}} bidLimits={bidLimits} />
-        ))}
-
-        {/* Loot History Card */}
+      {activeTab === 'approved' && (
         <div className="bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden">
-          <div className="p-4 px-6 border-b border-primary/10 text-sm font-bold text-foreground">
-            Recent Loot History
+          <div className="p-4 px-6 border-b border-primary/10 text-sm font-bold text-foreground flex items-center justify-between">
+            <span>✅ Approved Loot Distribution</span>
+            <span className="text-xs text-muted-foreground font-normal">{approvedLoot.length} items distributed</span>
           </div>
-          {lootHistory.length === 0 ? (
+          {approvedLoot.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
-              <div className="text-4xl mb-3">📜</div>
-              <div className="text-sm">No loot history yet</div>
-              <div className="text-xs text-muted-foreground/60 mt-1">Auction wins will appear here</div>
+              <div className="text-4xl mb-3">✅</div>
+              <div className="text-sm">No approved loot yet</div>
+              <div className="text-xs text-muted-foreground/60 mt-1">Approved requests will appear here with member names</div>
             </div>
           ) : (
-            lootHistory.map((item, i) => (
-              <div key={i} className="flex items-start gap-3 p-3.5 px-6 border-b border-primary/6 transition-colors hover:bg-primary/5 last:border-b-0">
-                <div className="w-9 h-9 rounded-full shrink-0 bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-base">
-                  {item.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded mb-1 inline-block uppercase bg-primary/15 text-primary-light">
-                    {item.type}
-                  </span>
-                  <div 
-                    className="text-[13px] text-muted-foreground leading-relaxed [&_b]:text-foreground [&_b]:font-bold [&_.hl]:text-primary-light [&_.gold]:text-gold [&_.green]:text-accent"
-                    dangerouslySetInnerHTML={{ __html: item.text }}
-                  />
-                  <div className="text-[11px] text-muted-foreground/60 mt-0.5">{item.time}</div>
-                </div>
-              </div>
+            approvedLoot.map(request => (
+              <ApprovedLootCard key={request.id} request={request} />
             ))
           )}
         </div>
-      </div>
+      )}
 
       <NewAuctionModal isOpen={showNewAuction} onClose={() => setShowNewAuction(false)} onAddAuction={handleAddAuction} />
       <LootHistoryModal isOpen={showLootHistory} onClose={() => setShowLootHistory(false)} />
