@@ -101,7 +101,7 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
     setSelectedPreset('custom')
     setCustomValues(v => ({
       ...v,
-      [key]: Math.max(0, Math.min(9, v[key] + dir))
+      [key]: Math.max(0, Math.min(100, v[key] + dir))
     }))
   }
 
@@ -186,7 +186,7 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
             <span className="text-[11px] font-medium text-muted-foreground/70 ml-2">Max bids per member per session</span>
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            Fragment Card: max 40 | Timespace: max 50 | LND: max 50
+            Fragment Card: max 100 | Timespace: max 100 | LND: max 100
           </div>
         </div>
 
