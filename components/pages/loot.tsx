@@ -8,10 +8,12 @@ interface LootPageProps {
   onNavigate: (page: Page) => void
 }
 
-function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: () => void }) {
+// Display setting options
+const DISPLAY_OPTIONS = [20, 25, 30, 40, 50] as const
+
+function AuctionCard({ auction, onBid, bidsPerPage }: { auction: typeof auctions[0]; onBid: () => void; bidsPerPage: number }) {
   const [time, setTime] = useState(auction.timeRemaining)
   const [currentPage, setCurrentPage] = useState(1)
-  const BIDS_PER_PAGE = 10
 
   useEffect(() => {
     const interval = setInterval(() => {
