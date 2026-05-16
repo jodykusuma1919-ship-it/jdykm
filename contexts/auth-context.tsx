@@ -25,13 +25,13 @@ const AuthContext = createContext<AuthContextType | null>(null)
 const USERS_KEY = 'guild_users'
 const CURRENT_USER_KEY = 'guild_current_user'
 
-// Demo admin account
+// Demo admin account - Admin role has FULL access to everything
 const DEFAULT_ADMIN: User & { password: string } = {
   id: 'admin-001',
   username: 'admin',
   password: 'admin123',
-  displayName: 'Guild Master',
-  role: 'Guild Master',
+  displayName: 'Administrator',
+  role: 'Admin',
   createdAt: new Date().toISOString(),
 }
 
@@ -44,12 +44,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedUsers = localStorage.getItem(USERS_KEY)
     if (!storedUsers) {
       localStorage.setItem(USERS_KEY, JSON.stringify([DEFAULT_ADMIN]))
+    } else {
+      // Update existing admin user to have correct Admin role
+      const users = JSON.parse(storedUsers) as (User & { password: string })[]
+      const adminIndex = users.findIndex(u => u.username === 'admin')
+      if (adminIndex !== -1 && users[adminIndex].role !== 'Admin') {
+        users[adminIndex] = { ...users[adminIndex], role: 'Admin', displayName: 'Administrator' }
+        localStorage.setItem(USERS_KEY, JSON.stringify(users))
+      }
     }
 
     // Check for existing session
     const currentUser = localStorage.getItem(CURRENT_USER_KEY)
     if (currentUser) {
-      setUser(JSON.parse(currentUser))
+      const parsed = JSON.parse(currentUser) as User
+      // Fix admin role if cached incorrectly
+      if (parsed.username === 'admin' && parsed.role !== 'Admin') {
+        parsed.role = 'Admin'
+        parsed.displayName = 'Administrator'
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(parsed))
+      }
+      setUser(parsed)
     }
     setIsLoading(false)
   }, [])
