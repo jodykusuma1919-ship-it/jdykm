@@ -2,6 +2,16 @@
 
 import { useState } from 'react'
 
+// Current user role - in production this would come from auth context
+const CURRENT_USER_ROLE = 'Guild Master' // Options: 'Guild Master', 'Vice Master', 'Officer', 'Raid Leader', 'Member', 'Recruit'
+
+// Roles that can edit all settings
+const ADMIN_ROLES = ['Guild Master', 'Vice Master']
+
+function canEdit(): boolean {
+  return ADMIN_ROLES.includes(CURRENT_USER_ROLE)
+}
+
 interface PresetCardProps {
   id: string
   icon: string
@@ -10,17 +20,20 @@ interface PresetCardProps {
   values: { fragmentCard: number; timespace: number; lnd: number }
   active: boolean
   onSelect: () => void
+  disabled?: boolean
 }
 
-function PresetCard({ icon, label, description, values, active, onSelect }: PresetCardProps) {
+function PresetCard({ icon, label, description, values, active, onSelect, disabled }: PresetCardProps) {
   return (
     <button
       onClick={onSelect}
+      disabled={disabled}
       className={`
-        bg-white/3 border-2 rounded-[14px] p-4 cursor-pointer transition-all duration-200 relative select-none text-left
+        bg-white/3 border-2 rounded-[14px] p-4 transition-all duration-200 relative select-none text-left
+        ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
         ${active 
           ? 'border-primary bg-primary/14 shadow-[0_0_0_1px_rgba(124,58,237,0.25),0_0_10px_rgba(124,58,237,0.3)]' 
-          : 'border-primary/18 hover:border-primary/45 hover:bg-primary/8 hover:-translate-y-0.5'
+          : disabled ? 'border-primary/10' : 'border-primary/18 hover:border-primary/45 hover:bg-primary/8 hover:-translate-y-0.5'
         }
       `}
     >
@@ -50,18 +63,19 @@ function PresetCard({ icon, label, description, values, active, onSelect }: Pres
   )
 }
 
-function SettingToggle({ label, description, defaultOn }: { label: string; description: string; defaultOn?: boolean }) {
+function SettingToggle({ label, description, defaultOn, disabled }: { label: string; description: string; defaultOn?: boolean; disabled?: boolean }) {
   const [on, setOn] = useState(defaultOn ?? false)
 
   return (
-    <div className="flex items-center justify-between py-3.5 border-b border-white/4 last:border-b-0">
+    <div className={`flex items-center justify-between py-3.5 border-b border-white/4 last:border-b-0 ${disabled ? 'opacity-60' : ''}`}>
       <div>
         <div className="text-sm font-semibold text-foreground">{label}</div>
         <div className="text-xs text-muted-foreground/70 mt-0.5">{description}</div>
       </div>
       <button
-        onClick={() => setOn(!on)}
-        className={`w-11 h-6 rounded-xl relative cursor-pointer transition-all duration-200 border-none shrink-0 ${on ? 'bg-primary shadow-[0_0_12px_rgba(124,58,237,0.4)]' : 'bg-white/10'}`}
+        onClick={() => !disabled && setOn(!on)}
+        disabled={disabled}
+        className={`w-11 h-6 rounded-xl relative transition-all duration-200 border-none shrink-0 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'} ${on ? 'bg-primary shadow-[0_0_12px_rgba(124,58,237,0.4)]' : 'bg-white/10'}`}
       >
         <span className={`absolute top-[3px] w-[18px] h-[18px] bg-white rounded-full transition-all duration-200 ${on ? 'left-[23px]' : 'left-[3px]'}`} />
       </button>
@@ -72,6 +86,7 @@ function SettingToggle({ label, description, defaultOn }: { label: string; descr
 export function SettingsPage() {
   const [selectedPreset, setSelectedPreset] = useState('222')
   const [customValues, setCustomValues] = useState({ fragmentCard: 2, timespace: 2, lnd: 2 })
+  const isAdmin = canEdit()
 
   const presets = [
     { id: '333', icon: '⚔', label: '3-3-3', description: 'Balanced', values: { fragmentCard: 3, timespace: 3, lnd: 3 } },
@@ -80,6 +95,7 @@ export function SettingsPage() {
   ]
 
   const stepValue = (key: 'fragmentCard' | 'timespace' | 'lnd', dir: number) => {
+    if (!isAdmin) return
     setSelectedPreset('custom')
     setCustomValues(v => ({
       ...v,
@@ -99,12 +115,29 @@ export function SettingsPage() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-        <h1 className="font-serif text-[26px] font-bold text-foreground flex items-center gap-3">
-          <span className="text-2xl">⚙</span> Settings
-        </h1>
-        <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]">
-          💾 Save Changes
-        </button>
+        <div>
+          <h1 className="font-serif text-[26px] font-bold text-foreground flex items-center gap-3">
+            <span className="text-2xl">⚙</span> Settings
+          </h1>
+          {/* Role indicator */}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-xs text-muted-foreground">Your Role:</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded ${isAdmin ? 'bg-gold/20 text-gold' : 'bg-muted-foreground/20 text-muted-foreground'}`}>
+              {CURRENT_USER_ROLE}
+            </span>
+            {isAdmin && (
+              <span className="text-[10px] text-accent">Full Edit Access</span>
+            )}
+            {!isAdmin && (
+              <span className="text-[10px] text-muted-foreground/70">View Only</span>
+            )}
+          </div>
+        </div>
+        {isAdmin && (
+          <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]">
+            💾 Save Changes
+          </button>
+        )}
       </div>
 
       {/* Bid Limit Section */}
@@ -123,18 +156,21 @@ export function SettingsPage() {
               key={preset.id}
               {...preset}
               active={selectedPreset === preset.id}
-              onSelect={() => setSelectedPreset(preset.id)}
+              onSelect={() => isAdmin && setSelectedPreset(preset.id)}
+              disabled={!isAdmin}
             />
           ))}
           
           {/* Custom Card */}
           <button
-            onClick={() => setSelectedPreset('custom')}
+            onClick={() => isAdmin && setSelectedPreset('custom')}
+            disabled={!isAdmin}
             className={`
-              bg-white/3 border-2 rounded-[14px] p-4 cursor-pointer transition-all duration-200 relative select-none text-left
+              bg-white/3 border-2 rounded-[14px] p-4 transition-all duration-200 relative select-none text-left
+              ${!isAdmin ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
               ${selectedPreset === 'custom'
                 ? 'border-primary bg-primary/14 shadow-[0_0_0_1px_rgba(124,58,237,0.25),0_0_10px_rgba(124,58,237,0.3)]' 
-                : 'border-primary/18 hover:border-primary/45 hover:bg-primary/8 hover:-translate-y-0.5'
+                : !isAdmin ? 'border-primary/10' : 'border-primary/18 hover:border-primary/45 hover:bg-primary/8 hover:-translate-y-0.5'
               }
             `}
           >
@@ -159,14 +195,16 @@ export function SettingsPage() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => stepValue(key, -1)}
-                    className="w-[30px] h-[30px] rounded-lg border border-primary/30 bg-primary/10 text-foreground text-lg font-bold cursor-pointer flex items-center justify-center transition-all duration-150 leading-none hover:bg-primary/30 hover:border-primary"
+                    disabled={!isAdmin}
+                    className={`w-[30px] h-[30px] rounded-lg border border-primary/30 bg-primary/10 text-foreground text-lg font-bold flex items-center justify-center transition-all duration-150 leading-none ${!isAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-primary/30 hover:border-primary'}`}
                   >
                     −
                   </button>
                   <span className="font-mono text-xl font-bold text-primary-light min-w-7 text-center">{customValues[key]}</span>
                   <button 
                     onClick={() => stepValue(key, 1)}
-                    className="w-[30px] h-[30px] rounded-lg border border-primary/30 bg-primary/10 text-foreground text-lg font-bold cursor-pointer flex items-center justify-center transition-all duration-150 leading-none hover:bg-primary/30 hover:border-primary"
+                    disabled={!isAdmin}
+                    className={`w-[30px] h-[30px] rounded-lg border border-primary/30 bg-primary/10 text-foreground text-lg font-bold flex items-center justify-center transition-all duration-150 leading-none ${!isAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-primary/30 hover:border-primary'}`}
                   >
                     +
                   </button>
@@ -184,9 +222,9 @@ export function SettingsPage() {
           <div className="text-sm font-bold text-foreground mb-4 pb-2.5 border-b border-primary/12">
             🏰 Guild Settings
           </div>
-          <SettingToggle label="Auto-accept Recruits" description="Automatically accept applications that meet requirements" />
-          <SettingToggle label="Public Guild Profile" description="Allow anyone to view guild stats and members" defaultOn />
-          <SettingToggle label="Discord Webhooks" description="Send notifications to connected Discord server" defaultOn />
+          <SettingToggle label="Auto-accept Recruits" description="Automatically accept applications that meet requirements" disabled={!isAdmin} />
+          <SettingToggle label="Public Guild Profile" description="Allow anyone to view guild stats and members" defaultOn disabled={!isAdmin} />
+          <SettingToggle label="Discord Webhooks" description="Send notifications to connected Discord server" defaultOn disabled={!isAdmin} />
         </div>
 
         {/* DKP Settings */}
@@ -194,9 +232,9 @@ export function SettingsPage() {
           <div className="text-sm font-bold text-foreground mb-4 pb-2.5 border-b border-primary/12">
             💎 DKP Settings
           </div>
-          <SettingToggle label="Auto DKP on Attendance" description="Automatically award DKP when members mark attendance" defaultOn />
-          <SettingToggle label="Weekly DKP Decay" description="Reduce DKP by 5% each week for inactive members" />
-          <SettingToggle label="DKP Cap" description="Set maximum DKP a member can accumulate" />
+          <SettingToggle label="Auto DKP on Attendance" description="Automatically award DKP when members mark attendance" defaultOn disabled={!isAdmin} />
+          <SettingToggle label="Weekly DKP Decay" description="Reduce DKP by 5% each week for inactive members" disabled={!isAdmin} />
+          <SettingToggle label="DKP Cap" description="Set maximum DKP a member can accumulate" disabled={!isAdmin} />
         </div>
 
         {/* Notification Settings */}
@@ -204,9 +242,9 @@ export function SettingsPage() {
           <div className="text-sm font-bold text-foreground mb-4 pb-2.5 border-b border-primary/12">
             🔔 Notifications
           </div>
-          <SettingToggle label="New Applications" description="Notify officers of new recruitment applications" defaultOn />
-          <SettingToggle label="Raid Reminders" description="Send reminders before scheduled raids" defaultOn />
-          <SettingToggle label="Auction Alerts" description="Alert members when auctions are ending" defaultOn />
+          <SettingToggle label="New Applications" description="Notify officers of new recruitment applications" defaultOn disabled={!isAdmin} />
+          <SettingToggle label="Raid Reminders" description="Send reminders before scheduled raids" defaultOn disabled={!isAdmin} />
+          <SettingToggle label="Auction Alerts" description="Alert members when auctions are ending" defaultOn disabled={!isAdmin} />
         </div>
 
         {/* Privacy Settings */}
@@ -214,9 +252,9 @@ export function SettingsPage() {
           <div className="text-sm font-bold text-foreground mb-4 pb-2.5 border-b border-primary/12">
             🔒 Privacy
           </div>
-          <SettingToggle label="Hide DKP from Recruits" description="Only show DKP values to full members" />
-          <SettingToggle label="Anonymous Bidding" description="Hide bidder names during auctions" />
-          <SettingToggle label="Member Activity Logs" description="Track detailed member activity" defaultOn />
+          <SettingToggle label="Hide DKP from Recruits" description="Only show DKP values to full members" disabled={!isAdmin} />
+          <SettingToggle label="Anonymous Bidding" description="Hide bidder names during auctions" disabled={!isAdmin} />
+          <SettingToggle label="Member Activity Logs" description="Track detailed member activity" defaultOn disabled={!isAdmin} />
         </div>
       </div>
     </div>

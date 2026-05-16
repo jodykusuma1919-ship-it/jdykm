@@ -97,6 +97,10 @@ export function Sidebar({ currentPage, onNavigate, collapsed, mobileOpen }: Side
       <NavItem page="analytics" icon="📊" label="Analytics" active={currentPage === 'analytics'} onClick={() => onNavigate('analytics')} collapsed={collapsed && !mobileOpen} />
       <NavItem page="recruitment" icon="📋" label="Recruitment" badge={5} active={currentPage === 'recruitment'} onClick={() => onNavigate('recruitment')} collapsed={collapsed && !mobileOpen} />
 
+      <SidebarSection title="BATTLE" collapsed={collapsed && !mobileOpen} />
+      <NavItem page="parties" icon="👥" label="Parties" active={currentPage === 'parties'} onClick={() => onNavigate('parties')} collapsed={collapsed && !mobileOpen} />
+      <NavItem page="battlefield" icon="⚔" label="Battlefield" active={currentPage === 'battlefield'} onClick={() => onNavigate('battlefield')} collapsed={collapsed && !mobileOpen} />
+
       <SidebarSection title="SYSTEM" collapsed={collapsed && !mobileOpen} />
       <NavItem page="settings" icon="⚙" label="Settings" active={currentPage === 'settings'} onClick={() => onNavigate('settings')} collapsed={collapsed && !mobileOpen} />
 

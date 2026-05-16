@@ -12,8 +12,10 @@ import { AttendancePage } from '@/components/pages/attendance'
 import { AnalyticsPage } from '@/components/pages/analytics'
 import { RecruitmentPage } from '@/components/pages/recruitment'
 import { SettingsPage } from '@/components/pages/settings'
+import { PartiesPage } from '@/components/pages/parties'
+import { BattlefieldPage } from '@/components/pages/battlefield'
 
-export type Page = 'dashboard' | 'members' | 'dkp' | 'loot' | 'events' | 'attendance' | 'analytics' | 'recruitment' | 'settings'
+export type Page = 'dashboard' | 'members' | 'dkp' | 'loot' | 'events' | 'attendance' | 'analytics' | 'recruitment' | 'settings' | 'parties' | 'battlefield'
 
 const pageLabels: Record<Page, string> = {
   dashboard: 'Dashboard',
@@ -25,6 +27,8 @@ const pageLabels: Record<Page, string> = {
   analytics: 'Analytics',
   recruitment: 'Recruitment',
   settings: 'Settings',
+  parties: 'Party Management',
+  battlefield: 'Battlefield Setup',
 }
 
 export default function Home() {
@@ -84,6 +88,8 @@ export default function Home() {
         {currentPage === 'analytics' && <AnalyticsPage />}
         {currentPage === 'recruitment' && <RecruitmentPage />}
         {currentPage === 'settings' && <SettingsPage />}
+        {currentPage === 'parties' && <PartiesPage />}
+        {currentPage === 'battlefield' && <BattlefieldPage />}
       </main>
     </div>
   )
