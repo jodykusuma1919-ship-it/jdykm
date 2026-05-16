@@ -6,6 +6,7 @@ import type { GuildEvent } from '@/lib/data'
 import { useState } from 'react'
 import { canScheduleEvents, canEditAllSettings } from '@/lib/roles'
 import type { GuildRole } from '@/lib/roles'
+import { useGuildSettings } from '@/contexts/guild-settings-context'
 
 interface EventsPageProps {
   onNavigate: (page: Page) => void
@@ -257,6 +258,7 @@ export function EventsPage({ onNavigate, userRole }: EventsPageProps) {
   const canEditSettings = canEditAllSettings(userRole)
   const [filter, setFilter] = useState('')
   const [showScheduleEvent, setShowScheduleEvent] = useState(false)
+  const { settings } = useGuildSettings()
   const [events, setEvents] = useState<GuildEvent[]>(defaultGuildEvents)
   const [attendedEvents, setAttendedEvents] = useState<number[]>([])
   const [showDkpToast, setShowDkpToast] = useState(false)
@@ -268,8 +270,30 @@ export function EventsPage({ onNavigate, userRole }: EventsPageProps) {
 
   const totalDkp = events.reduce((sum, e) => sum + e.dkpReward, 0)
 
-  const handleScheduleEvent = (newEvent: GuildEvent) => {
+  const handleScheduleEvent = async (newEvent: GuildEvent) => {
     setEvents(prev => [newEvent, ...prev].sort((a, b) => a.date.getTime() - b.date.getTime()))
+    
+    // Post to Discord if webhook is configured
+    if (settings.discord.webhookUrl) {
+      try {
+        await fetch('/api/discord', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newEvent.name,
+            type: newEvent.type,
+            date: newEvent.date.toISOString(),
+            time: newEvent.time,
+            details: newEvent.details,
+            dkpReward: newEvent.dkpReward,
+            maxAttendance: newEvent.rsvp.total,
+            webhookUrl: settings.discord.webhookUrl,
+          }),
+        })
+      } catch (error) {
+        console.error('Failed to post to Discord:', error)
+      }
+    }
   }
 
   const handleRecordAttendance = (eventId: number) => {

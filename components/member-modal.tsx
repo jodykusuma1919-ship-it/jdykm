@@ -350,10 +350,24 @@ export function MemberModal({ member, onClose, onUpdateMember }: MemberModalProp
                   onUpload={(url) => handleScreenshotUpload('gearscore', url)}
                 />
                 <ScreenshotUpload
-                  label="Medal"
+                  label="PVP Stats"
+                  description="Your PVP ranking and stats"
+                  imageUrl={localMember.screenshots?.pvpStats}
+                  onUpload={(url) => handleScreenshotUpload('pvpStats', url)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1 mt-4">
+                <ScreenshotUpload
+                  label="Medal Collection"
                   description="Your medal collection"
                   imageUrl={localMember.screenshots?.medal}
                   onUpload={(url) => handleScreenshotUpload('medal', url)}
+                />
+                <ScreenshotUpload
+                  label="Gear / Equipment"
+                  description="Your equipped gear"
+                  imageUrl={localMember.screenshots?.gear}
+                  onUpload={(url) => handleScreenshotUpload('gear', url)}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1 mt-4">

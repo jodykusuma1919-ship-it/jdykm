@@ -357,6 +357,7 @@ export function MembersPage({ userRole }: MembersPageProps) {
                 <th className="p-3.5 px-4 text-left text-[11px] font-bold tracking-[1.5px] uppercase text-muted-foreground/70 bg-primary/5 border-b border-primary/10 cursor-pointer select-none whitespace-nowrap hover:text-primary-light">DKP</th>
                 <th className="p-3.5 px-4 text-left text-[11px] font-bold tracking-[1.5px] uppercase text-muted-foreground/70 bg-primary/5 border-b border-primary/10 cursor-pointer select-none whitespace-nowrap hover:text-primary-light">ATTENDANCE</th>
                 <th className="p-3.5 px-4 text-left text-[11px] font-bold tracking-[1.5px] uppercase text-muted-foreground/70 bg-primary/5 border-b border-primary/10 cursor-pointer select-none whitespace-nowrap hover:text-primary-light">STATUS</th>
+                <th className="p-3.5 px-4 text-left text-[11px] font-bold tracking-[1.5px] uppercase text-muted-foreground/70 bg-primary/5 border-b border-primary/10 cursor-pointer select-none whitespace-nowrap hover:text-primary-light max-lg:hidden">STATS</th>
                 <th className="p-3.5 px-4 text-left text-[11px] font-bold tracking-[1.5px] uppercase text-muted-foreground/70 bg-primary/5 border-b border-primary/10 cursor-pointer select-none whitespace-nowrap hover:text-primary-light max-md:hidden">LAST ONLINE</th>
                 <th className="p-3.5 px-4 text-left text-[11px] font-bold tracking-[1.5px] uppercase text-muted-foreground/70 bg-primary/5 border-b border-primary/10 cursor-pointer select-none whitespace-nowrap hover:text-primary-light max-md:hidden">JOIN DATE</th>
                 <th className="p-3.5 px-4 text-left text-[11px] font-bold tracking-[1.5px] uppercase text-muted-foreground/70 bg-primary/5 border-b border-primary/10">ACTIONS</th>
@@ -397,6 +398,21 @@ export function MembersPage({ userRole }: MembersPageProps) {
                   </td>
                   <td className="p-3.5 px-4 border-b border-primary/6 text-sm font-medium align-middle">
                     <StatusBadge status={member.status} />
+                  </td>
+                  <td className="p-3.5 px-4 border-b border-primary/6 text-sm font-medium align-middle max-lg:hidden">
+                    {(() => {
+                      const ss = member.screenshots || {}
+                      const count = [ss.gearscore, ss.pvpStats, ss.medal, ss.attackFeather, ss.defendFeather, ss.gear].filter(Boolean).length
+                      if (count === 0) return (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-muted-foreground/20 text-muted-foreground">No Stats</span>
+                      )
+                      if (count < 6) return (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gold/20 text-gold">{count}/6 Stats</span>
+                      )
+                      return (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-accent/20 text-accent">Complete</span>
+                      )
+                    })()}
                   </td>
                   <td className="p-3.5 px-4 border-b border-primary/6 text-[13px] text-muted-foreground align-middle max-md:hidden">
                     {member.lastOnline}
@@ -453,7 +469,15 @@ export function MembersPage({ userRole }: MembersPageProps) {
 
       {/* Member Modal */}
       {selectedMember && (
-        <MemberModal member={selectedMember} onClose={() => setSelectedMember(null)} />
+        <MemberModal 
+          member={selectedMember} 
+          onClose={() => setSelectedMember(null)} 
+          onUpdateMember={(memberId, updates) => {
+            setMembers(prev => prev.map(m => 
+              m.id === memberId ? { ...m, ...updates } : m
+            ))
+          }}
+        />
       )}
 
       {/* Add Member Modal */}

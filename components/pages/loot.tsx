@@ -5,7 +5,7 @@ import type { Page } from '@/app/page'
 import { auctions } from '@/lib/data'
 import { canManageLoot } from '@/lib/roles'
 import type { GuildRole } from '@/lib/roles'
-import { useGuildSettings } from '@/contexts/guild-settings-context'
+import { useGuildSettings, type LootRequest } from '@/contexts/guild-settings-context'
 
 interface LootPageProps {
   onNavigate: (page: Page) => void
@@ -13,17 +13,21 @@ interface LootPageProps {
 }
 
 // Display setting options (20 - 50 range)
-const DISPLAY_OPTIONS = [20, 25, 30, 40, 50] as const
 const BIDS_PER_PAGE = 20
 
-// Guild loot inventory remaining
-const guildLootRemaining = {
-  fragmentCard: { current: 127, total: 200 },
-  timespace: { current: 45, total: 100 },
-  lnd: { current: 83, total: 150 },
-}
-
-function AuctionCard({ auction, onBid, bidLimits }: { auction: typeof auctions[0]; onBid: () => void; bidLimits: { fragmentCard: number; timespace: number; lnd: number } }) {
+function AuctionCard({ 
+  auction, 
+  onBid, 
+  bidLimits,
+  userBidsCount,
+  currentUser 
+}: { 
+  auction: typeof auctions[0]
+  onBid: (auctionId: number) => void
+  bidLimits: { fragmentCard: number; timespace: number; lnd: number }
+  userBidsCount: { fragmentCard: number; timespace: number; lnd: number }
+  currentUser: string
+}) {
   const [time, setTime] = useState(auction.timeRemaining)
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -40,11 +44,13 @@ function AuctionCard({ auction, onBid, bidLimits }: { auction: typeof auctions[0
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   }
 
-  const totalPages = Math.ceil(auction.bids.length / BIDS_PER_PAGE)
+  const totalPages = Math.ceil(auction.bids.length / BIDS_PER_PAGE) || 1
   const startIndex = (currentPage - 1) * BIDS_PER_PAGE
   const visibleBids = auction.bids.slice(startIndex, startIndex + BIDS_PER_PAGE)
   const maxBids = bidLimits[auction.category] || 2
-  const bidsLeft = Math.max(0, maxBids - auction.bids.length)
+  const userBidCount = userBidsCount[auction.category] || 0
+  const bidsLeft = Math.max(0, maxBids - userBidCount)
+  const canBid = bidsLeft > 0 && time > 0
 
   return (
     <div className="bg-card backdrop-blur-xl border border-gold/25 rounded-2xl p-5 relative overflow-hidden">
@@ -104,10 +110,15 @@ function AuctionCard({ auction, onBid, bidLimits }: { auction: typeof auctions[0
           <span className="font-mono text-gold font-bold">{formatTime(time)}</span> remaining
         </div>
         <button 
-          onClick={onBid}
-          className="inline-flex items-center gap-2 py-1.5 px-3.5 rounded-lg border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+          onClick={() => canBid && onBid(auction.id)}
+          disabled={!canBid}
+          className={`inline-flex items-center gap-2 py-1.5 px-3.5 rounded-lg border-none font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap ${
+            canBid 
+              ? 'cursor-pointer bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]'
+              : 'cursor-not-allowed bg-gray-600/50 text-gray-400 opacity-60'
+          }`}
         >
-          Place Bid
+          {!canBid && bidsLeft === 0 ? 'Max Bids Reached' : time === 0 ? 'Auction Ended' : 'Place Bid'}
         </button>
       </div>
     </div>
@@ -168,7 +179,17 @@ function LootHistoryModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   )
 }
 
-function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; onClose: () => void; onAddAuction: (auction: { id: number; name: string; icon: string; type: string; ilvl: number; category: 'fragmentCard' | 'timespace' | 'lnd'; bids: { user: string; icon: string; dkp: number; time: string }[]; timeRemaining: number }) => void }) {
+function NewAuctionModal({ 
+  isOpen, 
+  onClose, 
+  onAddAuction,
+  lootRemaining 
+}: { 
+  isOpen: boolean
+  onClose: () => void
+  onAddAuction: (auction: { id: number; name: string; icon: string; type: string; ilvl: number; category: 'fragmentCard' | 'timespace' | 'lnd'; bids: { user: string; icon: string; dkp: number; time: string }[]; timeRemaining: number }) => void
+  lootRemaining: { fragmentCard: { current: number; total: number }; timespace: { current: number; total: number }; lnd: { current: number; total: number } }
+}) {
   const [itemName, setItemName] = useState('')
   const [itemType, setItemType] = useState('Fragment Card')
   const [duration, setDuration] = useState('60')
@@ -190,6 +211,15 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
       case 'Timespace': return 'timespace'
       case 'LND': return 'lnd'
       default: return 'fragmentCard'
+    }
+  }
+
+  const getRemainingForType = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return lootRemaining.fragmentCard.current
+      case 'Timespace': return lootRemaining.timespace.current
+      case 'LND': return lootRemaining.lnd.current
+      default: return 0
     }
   }
 
@@ -226,6 +256,31 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
           </h2>
         </div>
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+          {/* Guild Loot Remaining Summary */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 mb-2">
+            <div className="text-[11px] font-bold text-muted-foreground mb-2">Guild Loot Remaining:</div>
+            <div className="flex gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">🃏</span>
+                <span className={`text-xs font-mono font-bold ${lootRemaining.fragmentCard.current > 0 ? 'text-purple-400' : 'text-destructive'}`}>
+                  {lootRemaining.fragmentCard.current}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">🔮</span>
+                <span className={`text-xs font-mono font-bold ${lootRemaining.timespace.current > 0 ? 'text-cyan-400' : 'text-destructive'}`}>
+                  {lootRemaining.timespace.current}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">⚡</span>
+                <span className={`text-xs font-mono font-bold ${lootRemaining.lnd.current > 0 ? 'text-amber-400' : 'text-destructive'}`}>
+                  {lootRemaining.lnd.current}
+                </span>
+              </div>
+            </div>
+          </div>
+          
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-1.5">Item Name</label>
             <input
@@ -239,15 +294,20 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
           </div>
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-1.5">Item Type</label>
-            <select
-              value={itemType}
-              onChange={e => setItemType(e.target.value)}
-              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
-            >
-              <option value="Fragment Card">Fragment Card</option>
-              <option value="Timespace">Timespace</option>
-              <option value="LND">LND</option>
-            </select>
+            <div className="relative">
+              <select
+                value={itemType}
+                onChange={e => setItemType(e.target.value)}
+                className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+              >
+                <option value="Fragment Card">Fragment Card ({lootRemaining.fragmentCard.current} left)</option>
+                <option value="Timespace">Timespace ({lootRemaining.timespace.current} left)</option>
+                <option value="LND">LND ({lootRemaining.lnd.current} left)</option>
+              </select>
+              {getRemainingForType(itemType) === 0 && (
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] font-bold text-destructive">OUT OF STOCK</div>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-1.5">Duration</label>
@@ -274,12 +334,158 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
             </button>
             <button
               type="submit"
-              className="flex-1 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+              disabled={getRemainingForType(itemType) === 0}
+              className={`flex-1 py-2.5 px-4 rounded-xl border-none font-sans text-sm font-bold tracking-wide transition-all duration-200 ${
+                getRemainingForType(itemType) > 0
+                  ? 'cursor-pointer bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]'
+                  : 'cursor-not-allowed bg-gray-600/50 text-gray-400 opacity-60'
+              }`}
             >
               Create Auction
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+// Pending Request Card for approval panel
+function PendingRequestApprovalCard({ 
+  request, 
+  onApprove, 
+  onDecline, 
+  canManage 
+}: { 
+  request: LootRequest
+  onApprove: () => void
+  onDecline: () => void
+  canManage: boolean
+}) {
+  const getItemIcon = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return '🃏'
+      case 'LND': return '⚡'
+      case 'Timespace': return '🔮'
+      default: return '🎁'
+    }
+  }
+
+  const getItemColor = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return 'border-purple-500/25 bg-purple-500/5'
+      case 'LND': return 'border-amber-500/25 bg-amber-500/5'
+      case 'Timespace': return 'border-cyan-500/25 bg-cyan-500/5'
+      default: return 'border-primary/25 bg-primary/5'
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} min ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  }
+
+  return (
+    <div className={`border rounded-xl p-4 ${getItemColor(request.itemType)}`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{getItemIcon(request.itemType)}</span>
+          <div>
+            <div className="text-sm font-bold text-foreground">{request.itemType}</div>
+            <div className="text-xs text-muted-foreground">x{request.quantity}</div>
+          </div>
+        </div>
+        <span className="text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded uppercase bg-gold/20 text-gold border border-gold/30 animate-pulse">
+          PENDING
+        </span>
+      </div>
+
+      {/* Requester Info */}
+      <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/10">
+        <span className="text-lg">{request.memberClass.icon}</span>
+        <div>
+          <div className="text-sm font-semibold text-foreground">{request.memberName}</div>
+          <div className="text-[11px] text-muted-foreground">{request.memberClass.name}</div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-xs mb-2">
+        <span className="text-muted-foreground">DKP Cost:</span>
+        <span className="font-mono font-bold text-gold">{request.dkpCost} DKP</span>
+      </div>
+
+      <div className="text-[11px] text-muted-foreground/60 mb-3">
+        Requested {formatDate(request.requestedAt)}
+      </div>
+
+      {request.note && (
+        <div className="text-[11px] text-muted-foreground/80 mb-3 p-2 bg-white/5 rounded-lg italic">
+          Note: {request.note}
+        </div>
+      )}
+
+      {canManage && (
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={onDecline}
+            className="flex-1 py-2 px-3 rounded-lg cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 bg-destructive/20 text-destructive border border-destructive/30 hover:bg-destructive/30"
+          >
+            Decline
+          </button>
+          <button
+            onClick={onApprove}
+            className="flex-1 py-2 px-3 rounded-lg border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-accent to-green-600 text-white shadow-[0_4px_15px_rgba(34,197,94,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(34,197,94,0.5)]"
+          >
+            Approve
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Approved Loot Card
+function ApprovedLootCard({ request }: { request: LootRequest }) {
+  const getItemIcon = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return '🃏'
+      case 'LND': return '⚡'
+      case 'Timespace': return '🔮'
+      default: return '🎁'
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  return (
+    <div className="flex items-center gap-4 p-4 px-6 border-b border-primary/6 last:border-b-0 hover:bg-primary/5 transition-colors">
+      <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl bg-accent/20">
+        {getItemIcon(request.itemType)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{request.memberClass.icon}</span>
+          <span className="text-sm font-semibold text-foreground">{request.memberName}</span>
+        </div>
+        <div className="text-xs text-muted-foreground/70">
+          Received {request.itemType} x{request.quantity}
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="font-mono text-sm font-bold text-gold">-{request.dkpCost} DKP</div>
+        <div className="text-[11px] text-muted-foreground/60">{formatDate(request.processedAt || request.requestedAt)}</div>
       </div>
     </div>
   )
@@ -296,21 +502,112 @@ type Auction = {
   timeRemaining: number
 }
 
+// Simulated current user - in production this would come from auth
+const CURRENT_USER = { name: 'Skywalker', icon: '⚔' }
+
 export function LootPage({ onNavigate, userRole }: LootPageProps) {
   const canManage = canManageLoot(userRole)
-  const { settings } = useGuildSettings()
+  const canApproveRequests = ['Admin', 'Guild Master', 'Vice Master'].includes(userRole)
+  const { settings, processLootRequest, updateLootInventory, updateMaxDkpPerBid } = useGuildSettings()
   const [showNewAuction, setShowNewAuction] = useState(false)
   const [showLootHistory, setShowLootHistory] = useState(false)
   const [activeAuctions, setActiveAuctions] = useState<Auction[]>(auctions as Auction[])
+  const [activeTab, setActiveTab] = useState<'auctions' | 'requests' | 'approved'>('auctions')
+  const [showBidModal, setShowBidModal] = useState<number | null>(null)
+  const [bidAmount, setBidAmount] = useState('')
+  const [editingInventory, setEditingInventory] = useState<'fragmentCard' | 'timespace' | 'lnd' | null>(null)
+  const [editValues, setEditValues] = useState({ current: 0, total: 0 })
+  const [editingMaxDkp, setEditingMaxDkp] = useState(false)
+  const [tempMaxDkp, setTempMaxDkp] = useState(settings.maxDkpPerBid)
   
-  // Get bid limits from shared settings
+  // Track user's bid count per category
+  const [userBidsCount, setUserBidsCount] = useState<{ fragmentCard: number; timespace: number; lnd: number }>({
+    fragmentCard: 0,
+    timespace: 0,
+    lnd: 0
+  })
+  
+  // Get settings from shared context
   const bidLimits = settings.bidLimits
-  
-  // Empty loot history - start fresh
-  const lootHistory: { icon: string; type: string; text: string; time: string }[] = []
+  const guildLootRemaining = settings.lootInventory
+  const maxDkpPerBid = settings.maxDkpPerBid
+  const pendingRequests = settings.lootRequests.filter(r => r.status === 'pending')
+  const approvedLoot = settings.approvedLoot
+
+  const startEditInventory = (type: 'fragmentCard' | 'timespace' | 'lnd') => {
+    setEditingInventory(type)
+    setEditValues({
+      current: guildLootRemaining[type].current,
+      total: guildLootRemaining[type].total
+    })
+  }
+
+  const saveInventoryEdit = () => {
+    if (!editingInventory) return
+    updateLootInventory({
+      ...guildLootRemaining,
+      [editingInventory]: { current: editValues.current, total: editValues.total }
+    })
+    setEditingInventory(null)
+  }
+
+  const saveMaxDkpEdit = () => {
+    updateMaxDkpPerBid(tempMaxDkp)
+    setEditingMaxDkp(false)
+  }
 
   const handleAddAuction = (newAuction: Auction) => {
     setActiveAuctions(prev => [...prev, newAuction])
+  }
+
+  const handlePlaceBid = (auctionId: number) => {
+    setShowBidModal(auctionId)
+    setBidAmount('')
+  }
+
+  const confirmBid = () => {
+    if (!showBidModal || !bidAmount) return
+    
+    const auction = activeAuctions.find(a => a.id === showBidModal)
+    if (!auction) return
+
+    const dkpAmount = parseInt(bidAmount)
+    if (isNaN(dkpAmount) || dkpAmount <= 0) return
+    if (dkpAmount > maxDkpPerBid) return // Enforce max DKP per bid
+
+    // Add bid to auction
+    const newBid = {
+      user: CURRENT_USER.name,
+      icon: CURRENT_USER.icon,
+      dkp: dkpAmount,
+      time: 'Just now'
+    }
+
+    setActiveAuctions(prev => prev.map(a => {
+      if (a.id === showBidModal) {
+        // Insert bid in sorted order (highest first)
+        const newBids = [...a.bids, newBid].sort((x, y) => y.dkp - x.dkp)
+        return { ...a, bids: newBids }
+      }
+      return a
+    }))
+
+    // Update user's bid count for this category
+    setUserBidsCount(prev => ({
+      ...prev,
+      [auction.category]: prev[auction.category] + 1
+    }))
+
+    setShowBidModal(null)
+    setBidAmount('')
+  }
+
+  const handleApproveRequest = (requestId: string) => {
+    processLootRequest(requestId, 'approved', 'Guild Master')
+  }
+
+  const handleDeclineRequest = (requestId: string) => {
+    processLootRequest(requestId, 'declined', 'Guild Master')
   }
 
   return (
@@ -339,8 +636,17 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
 
       {/* Guild Loot Inventory Remaining */}
       <div className="grid grid-cols-3 gap-4 mb-5 max-md:grid-cols-1">
+        {/* Fragment Card */}
         <div className="bg-card backdrop-blur-xl border border-purple-500/25 rounded-2xl p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-[25px] opacity-30 pointer-events-none bg-purple-500" />
+          {canManage && (
+            <button 
+              onClick={() => startEditInventory('fragmentCard')}
+              className="absolute top-2 right-2 z-20 w-6 h-6 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-muted-foreground cursor-pointer transition-all"
+            >
+              Edit
+            </button>
+          )}
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-2xl">🃏</div>
             <div className="flex-1">
@@ -354,8 +660,17 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
           </div>
         </div>
 
+        {/* Timespace */}
         <div className="bg-card backdrop-blur-xl border border-cyan-500/25 rounded-2xl p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-[25px] opacity-30 pointer-events-none bg-cyan-500" />
+          {canManage && (
+            <button 
+              onClick={() => startEditInventory('timespace')}
+              className="absolute top-2 right-2 z-20 w-6 h-6 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-muted-foreground cursor-pointer transition-all"
+            >
+              Edit
+            </button>
+          )}
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center text-2xl">🔮</div>
             <div className="flex-1">
@@ -369,8 +684,17 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
           </div>
         </div>
 
+        {/* LND */}
         <div className="bg-card backdrop-blur-xl border border-amber-500/25 rounded-2xl p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-[25px] opacity-30 pointer-events-none bg-amber-500" />
+          {canManage && (
+            <button 
+              onClick={() => startEditInventory('lnd')}
+              className="absolute top-2 right-2 z-20 w-6 h-6 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-muted-foreground cursor-pointer transition-all"
+            >
+              Edit
+            </button>
+          )}
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl">⚡</div>
             <div className="flex-1">
@@ -385,21 +709,85 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
         </div>
       </div>
 
-      {/* Bid Limit Banner */}
+      {/* Max DKP Per Bid Setting - Admin Only */}
+      {canManage && (
+        <div className="bg-card backdrop-blur-xl border border-gold/25 rounded-xl p-4 mb-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center text-xl">💰</div>
+              <div>
+                <div className="text-xs text-muted-foreground font-semibold">Max DKP Per Bid</div>
+                <div className="text-sm text-foreground">Members cannot bid more than this amount</div>
+              </div>
+            </div>
+            {editingMaxDkp ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={tempMaxDkp}
+                  onChange={e => setTempMaxDkp(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-20 bg-white/4 border border-gold/30 rounded-lg py-1.5 px-3 text-foreground text-sm font-mono outline-none focus:border-gold"
+                  min="1"
+                />
+                <button 
+                  onClick={saveMaxDkpEdit}
+                  className="py-1.5 px-3 rounded-lg text-xs font-bold bg-gold/20 text-gold border border-gold/30 hover:bg-gold/30 cursor-pointer transition-all"
+                >
+                  Save
+                </button>
+                <button 
+                  onClick={() => setEditingMaxDkp(false)}
+                  className="py-1.5 px-3 rounded-lg text-xs font-bold bg-white/5 text-muted-foreground border border-white/15 hover:bg-white/10 cursor-pointer transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-2xl font-bold text-gold">{maxDkpPerBid}</span>
+                <span className="text-sm text-muted-foreground">DKP</span>
+                <button 
+                  onClick={() => { setTempMaxDkp(maxDkpPerBid); setEditingMaxDkp(true) }}
+                  className="py-1 px-2 rounded-md text-[10px] font-bold bg-white/10 text-muted-foreground hover:bg-white/20 cursor-pointer transition-all"
+                >
+                  Edit
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Bid Limit Banner - GL & WOE */}
       <div className="flex items-center gap-3.5 flex-wrap bg-primary/8 border border-primary/25 rounded-xl p-3 px-5 mb-5">
         <div className="flex items-center gap-2 text-[13px] font-bold text-primary-light">
           🔨 Max Bid Limits:
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            Fragment Card <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">{bidLimits.fragmentCard}</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            Timespace <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">{bidLimits.timespace}</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            LND <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">{bidLimits.lnd}</span>
-          </span>
+        <div className="flex gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-gold">GL:</span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-primary/18 border border-primary/30 text-primary-light">
+              FC <span className="font-mono text-white bg-primary rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.gl.fragmentCard}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-primary/18 border border-primary/30 text-primary-light">
+              TS <span className="font-mono text-white bg-primary rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.gl.timespace}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-primary/18 border border-primary/30 text-primary-light">
+              LND <span className="font-mono text-white bg-primary rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.gl.lnd}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-amber-400">WOE:</span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-amber-500/18 border border-amber-500/30 text-amber-300">
+              FC <span className="font-mono text-white bg-amber-600 rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.woe.fragmentCard}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-amber-500/18 border border-amber-500/30 text-amber-300">
+              TS <span className="font-mono text-white bg-amber-600 rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.woe.timespace}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[10px] font-bold bg-amber-500/18 border border-amber-500/30 text-amber-300">
+              LND <span className="font-mono text-white bg-amber-600 rounded-xl py-0.5 px-1 ml-0.5">{settings.eventBidLimits.woe.lnd}</span>
+            </span>
+          </div>
         </div>
         {canManage && (
           <button onClick={() => onNavigate('settings')} className="ml-auto text-xs text-primary-light cursor-pointer underline whitespace-nowrap">
@@ -408,62 +796,345 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
         )}
       </div>
 
-      {/* Active status */}
-      {activeAuctions.length > 0 && (
-        <div className="text-[13px] text-muted-foreground mb-4 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse-glow" />
-          {activeAuctions.length} active auction{activeAuctions.length !== 1 ? 's' : ''} in progress
+      {/* Economy Loot - Who Already Bid */}
+      <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-5 mb-5">
+        <div className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+          <span className="text-lg">📊</span> Economy Loot - Current Bidders
         </div>
-      )}
-
-      {/* Auction Grid */}
-      <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
-        {activeAuctions.length === 0 && (
-          <div className="col-span-2 bg-card backdrop-blur-xl border border-border rounded-2xl p-10 text-center">
-            <div className="text-4xl mb-3">⚡</div>
-            <div className="text-sm text-muted-foreground">No active auctions</div>
-            <div className="text-xs text-muted-foreground/60 mt-1">Click "+ New Auction" to start one</div>
-          </div>
-        )}
-        {activeAuctions.map(auction => (
-          <AuctionCard key={auction.id} auction={auction} onBid={() => {}} bidLimits={bidLimits} />
-        ))}
-
-        {/* Loot History Card */}
-        <div className="bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden">
-          <div className="p-4 px-6 border-b border-primary/10 text-sm font-bold text-foreground">
-            Recent Loot History
-          </div>
-          {lootHistory.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              <div className="text-4xl mb-3">📜</div>
-              <div className="text-sm">No loot history yet</div>
-              <div className="text-xs text-muted-foreground/60 mt-1">Auction wins will appear here</div>
+        <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">
+          {/* Fragment Card Bidders */}
+          <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">🃏</span>
+              <span className="text-xs font-bold text-foreground">Fragment Card</span>
+              <span className="ml-auto text-[10px] font-bold text-purple-400">
+                {activeAuctions.filter(a => a.category === 'fragmentCard').reduce((sum, a) => sum + a.bids.length, 0)} bids
+              </span>
             </div>
-          ) : (
-            lootHistory.map((item, i) => (
-              <div key={i} className="flex items-start gap-3 p-3.5 px-6 border-b border-primary/6 transition-colors hover:bg-primary/5 last:border-b-0">
-                <div className="w-9 h-9 rounded-full shrink-0 bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-base">
-                  {item.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded mb-1 inline-block uppercase bg-primary/15 text-primary-light">
-                    {item.type}
-                  </span>
-                  <div 
-                    className="text-[13px] text-muted-foreground leading-relaxed [&_b]:text-foreground [&_b]:font-bold [&_.hl]:text-primary-light [&_.gold]:text-gold [&_.green]:text-accent"
-                    dangerouslySetInnerHTML={{ __html: item.text }}
-                  />
-                  <div className="text-[11px] text-muted-foreground/60 mt-0.5">{item.time}</div>
-                </div>
-              </div>
-            ))
-          )}
+            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
+              {activeAuctions.filter(a => a.category === 'fragmentCard').flatMap(a => 
+                a.bids.map((bid, i) => (
+                  <div key={`fc-${a.id}-${i}`} className="flex items-center justify-between text-xs py-1 px-2 bg-purple-500/10 rounded">
+                    <span className="text-foreground/80">{bid.icon} {bid.user}</span>
+                    <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
+                  </div>
+                ))
+              )}
+              {activeAuctions.filter(a => a.category === 'fragmentCard').reduce((sum, a) => sum + a.bids.length, 0) === 0 && (
+                <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bids yet</div>
+              )}
+            </div>
+          </div>
+
+          {/* Timespace Bidders */}
+          <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">🔮</span>
+              <span className="text-xs font-bold text-foreground">Timespace</span>
+              <span className="ml-auto text-[10px] font-bold text-cyan-400">
+                {activeAuctions.filter(a => a.category === 'timespace').reduce((sum, a) => sum + a.bids.length, 0)} bids
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
+              {activeAuctions.filter(a => a.category === 'timespace').flatMap(a => 
+                a.bids.map((bid, i) => (
+                  <div key={`ts-${a.id}-${i}`} className="flex items-center justify-between text-xs py-1 px-2 bg-cyan-500/10 rounded">
+                    <span className="text-foreground/80">{bid.icon} {bid.user}</span>
+                    <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
+                  </div>
+                ))
+              )}
+              {activeAuctions.filter(a => a.category === 'timespace').reduce((sum, a) => sum + a.bids.length, 0) === 0 && (
+                <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bids yet</div>
+              )}
+            </div>
+          </div>
+
+          {/* LND Bidders */}
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">⚡</span>
+              <span className="text-xs font-bold text-foreground">LND</span>
+              <span className="ml-auto text-[10px] font-bold text-amber-400">
+                {activeAuctions.filter(a => a.category === 'lnd').reduce((sum, a) => sum + a.bids.length, 0)} bids
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
+              {activeAuctions.filter(a => a.category === 'lnd').flatMap(a => 
+                a.bids.map((bid, i) => (
+                  <div key={`lnd-${a.id}-${i}`} className="flex items-center justify-between text-xs py-1 px-2 bg-amber-500/10 rounded">
+                    <span className="text-foreground/80">{bid.icon} {bid.user}</span>
+                    <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
+                  </div>
+                ))
+              )}
+              {activeAuctions.filter(a => a.category === 'lnd').reduce((sum, a) => sum + a.bids.length, 0) === 0 && (
+                <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bids yet</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      <NewAuctionModal isOpen={showNewAuction} onClose={() => setShowNewAuction(false)} onAddAuction={handleAddAuction} />
+      {/* Tab Navigation */}
+      <div className="flex gap-2 mb-5 border-b border-primary/15 pb-3">
+        <button
+          onClick={() => setActiveTab('auctions')}
+          className={`py-2 px-4 rounded-t-lg font-sans text-sm font-bold tracking-wide transition-all duration-200 ${
+            activeTab === 'auctions'
+              ? 'bg-primary/20 text-primary-light border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+          }`}
+        >
+          ⚡ Auctions {activeAuctions.length > 0 && `(${activeAuctions.length})`}
+        </button>
+        <button
+          onClick={() => setActiveTab('requests')}
+          className={`py-2 px-4 rounded-t-lg font-sans text-sm font-bold tracking-wide transition-all duration-200 relative ${
+            activeTab === 'requests'
+              ? 'bg-primary/20 text-primary-light border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+          }`}
+        >
+          📋 Pending Requests
+          {pendingRequests.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold text-[10px] font-bold text-black flex items-center justify-center animate-pulse">
+              {pendingRequests.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('approved')}
+          className={`py-2 px-4 rounded-t-lg font-sans text-sm font-bold tracking-wide transition-all duration-200 ${
+            activeTab === 'approved'
+              ? 'bg-primary/20 text-primary-light border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+          }`}
+        >
+          ✅ Approved Loot {approvedLoot.length > 0 && `(${approvedLoot.length})`}
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'auctions' && (
+        <>
+          {/* Active status */}
+          {activeAuctions.length > 0 && (
+            <div className="text-[13px] text-muted-foreground mb-4 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse-glow" />
+              {activeAuctions.length} active auction{activeAuctions.length !== 1 ? 's' : ''} in progress
+            </div>
+          )}
+
+          {/* Auction Grid */}
+          <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
+            {activeAuctions.length === 0 && (
+              <div className="col-span-2 bg-card backdrop-blur-xl border border-border rounded-2xl p-10 text-center">
+                <div className="text-4xl mb-3">⚡</div>
+                <div className="text-sm text-muted-foreground">No active auctions</div>
+                <div className="text-xs text-muted-foreground/60 mt-1">Click &quot;+ New Auction&quot; to start one</div>
+              </div>
+            )}
+            {activeAuctions.map(auction => (
+              <AuctionCard 
+                key={auction.id} 
+                auction={auction} 
+                onBid={handlePlaceBid} 
+                bidLimits={bidLimits}
+                userBidsCount={userBidsCount}
+                currentUser={CURRENT_USER.name}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'requests' && (
+        <div>
+          {!canApproveRequests && (
+            <div className="bg-gold/10 border border-gold/30 rounded-xl p-4 mb-5">
+              <div className="text-sm text-gold font-semibold">Only Guild Master or Vice Master can approve requests</div>
+              <div className="text-xs text-muted-foreground mt-1">Contact leadership if you need to process requests</div>
+            </div>
+          )}
+
+          {pendingRequests.length === 0 ? (
+            <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-10 text-center">
+              <div className="text-4xl mb-3">📋</div>
+              <div className="text-sm text-muted-foreground">No pending requests</div>
+              <div className="text-xs text-muted-foreground/60 mt-1">Member requests will appear here</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2 max-sm:grid-cols-1">
+              {pendingRequests.map(request => (
+                <PendingRequestApprovalCard
+                  key={request.id}
+                  request={request}
+                  onApprove={() => handleApproveRequest(request.id)}
+                  onDecline={() => handleDeclineRequest(request.id)}
+                  canManage={canApproveRequests}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'approved' && (
+        <div className="bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden">
+          <div className="p-4 px-6 border-b border-primary/10 text-sm font-bold text-foreground flex items-center justify-between">
+            <span>✅ Approved Loot Distribution</span>
+            <span className="text-xs text-muted-foreground font-normal">{approvedLoot.length} items distributed</span>
+          </div>
+          {approvedLoot.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <div className="text-4xl mb-3">✅</div>
+              <div className="text-sm">No approved loot yet</div>
+              <div className="text-xs text-muted-foreground/60 mt-1">Approved requests will appear here with member names</div>
+            </div>
+          ) : (
+            approvedLoot.map(request => (
+              <ApprovedLootCard key={request.id} request={request} />
+            ))
+          )}
+        </div>
+      )}
+
+      <NewAuctionModal 
+        isOpen={showNewAuction} 
+        onClose={() => setShowNewAuction(false)} 
+        onAddAuction={handleAddAuction}
+        lootRemaining={guildLootRemaining}
+      />
       <LootHistoryModal isOpen={showLootHistory} onClose={() => setShowLootHistory(false)} />
+
+      {/* Bid Modal */}
+      {showBidModal !== null && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowBidModal(null)}>
+          <div 
+            className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-primary/15">
+              <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+                Place Bid
+              </h2>
+              <div className="text-xs text-muted-foreground mt-1">
+                {activeAuctions.find(a => a.id === showBidModal)?.name}
+              </div>
+            </div>
+            <div className="p-5 flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">
+                  DKP Amount <span className="text-gold">(Max: {maxDkpPerBid})</span>
+                </label>
+                <input
+                  type="number"
+                  value={bidAmount}
+                  onChange={e => {
+                    const val = e.target.value
+                    // Allow empty or valid numbers up to max
+                    if (val === '' || (parseInt(val) >= 0 && parseInt(val) <= maxDkpPerBid)) {
+                      setBidAmount(val)
+                    }
+                  }}
+                  placeholder={`Enter DKP amount (1-${maxDkpPerBid})...`}
+                  min="1"
+                  max={maxDkpPerBid}
+                  className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
+                  autoFocus
+                />
+                {parseInt(bidAmount) > maxDkpPerBid && (
+                  <div className="text-[11px] text-destructive mt-1">Maximum DKP per bid is {maxDkpPerBid}</div>
+                )}
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground/70">
+                <span>Remaining bids: <span className="font-mono font-bold text-gold">
+                  {(() => {
+                    const auction = activeAuctions.find(a => a.id === showBidModal)
+                    if (!auction) return 0
+                    return Math.max(0, (bidLimits[auction.category] || 2) - (userBidsCount[auction.category] || 0))
+                  })()}
+                </span></span>
+                <span>Max: <span className="font-mono font-bold text-gold">{maxDkpPerBid} DKP</span></span>
+              </div>
+              <div className="flex gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBidModal(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-transparent text-muted-foreground border border-white/15 hover:bg-white/5 hover:border-white/25"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmBid}
+                  disabled={!bidAmount || parseInt(bidAmount) <= 0 || parseInt(bidAmount) > maxDkpPerBid}
+                  className={`flex-1 py-2.5 px-4 rounded-xl border-none font-sans text-sm font-bold tracking-wide transition-all duration-200 ${
+                    bidAmount && parseInt(bidAmount) > 0 && parseInt(bidAmount) <= maxDkpPerBid
+                      ? 'cursor-pointer bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]'
+                      : 'cursor-not-allowed bg-gray-600/50 text-gray-400 opacity-60'
+                  }`}
+                >
+                  Confirm Bid
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Inventory Modal */}
+      {editingInventory && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditingInventory(null)}>
+          <div 
+            className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-primary/15">
+              <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+                Edit {editingInventory === 'fragmentCard' ? 'Fragment Card' : editingInventory === 'timespace' ? 'Timespace' : 'LND'} Inventory
+              </h2>
+            </div>
+            <div className="p-5 flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">Current Amount</label>
+                <input
+                  type="number"
+                  value={editValues.current}
+                  onChange={e => setEditValues(prev => ({ ...prev, current: Math.max(0, parseInt(e.target.value) || 0) }))}
+                  min="0"
+                  className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">Total Capacity</label>
+                <input
+                  type="number"
+                  value={editValues.total}
+                  onChange={e => setEditValues(prev => ({ ...prev, total: Math.max(1, parseInt(e.target.value) || 1) }))}
+                  min="1"
+                  className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+                />
+              </div>
+              <div className="flex gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingInventory(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-transparent text-muted-foreground border border-white/15 hover:bg-white/5 hover:border-white/25"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveInventoryEdit}
+                  className="flex-1 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
