@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Rajdhani, Cinzel, Orbitron } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { GuildSettingsProvider } from '@/contexts/guild-settings-context'
+import { MemberScreenshotsProvider } from '@/contexts/member-screenshots-context'
 import './globals.css'
 
 const rajdhani = Rajdhani({ 
@@ -36,7 +37,9 @@ export default function RootLayout({
     <html lang="en" className={`${rajdhani.variable} ${cinzel.variable} ${orbitron.variable}`}>
       <body className="font-sans antialiased bg-background min-h-screen overflow-x-hidden">
         <GuildSettingsProvider>
-          {children}
+          <MemberScreenshotsProvider>
+            {children}
+          </MemberScreenshotsProvider>
         </GuildSettingsProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

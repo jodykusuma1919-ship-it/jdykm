@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from 'react'
 import { allMembers, roleColors, roleIcons, classes, roles } from '@/lib/data'
-import type { Member } from '@/lib/data'
+import type { Member, MemberScreenshots } from '@/lib/data'
 import { MemberModal } from '@/components/member-modal'
 import { canViewAllMembers, canEditMembers } from '@/lib/roles'
 import type { GuildRole } from '@/lib/roles'
+import { useMemberScreenshots } from '@/contexts/member-screenshots-context'
 
 interface MembersPageProps {
   userRole: GuildRole
@@ -173,6 +174,7 @@ function AttendanceBar({ value }: { value: number }) {
 
 export function MembersPage({ userRole }: MembersPageProps) {
   const canManage = canEditMembers(userRole)
+  const { getMemberScreenshots, updateMemberScreenshot } = useMemberScreenshots()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -401,13 +403,19 @@ export function MembersPage({ userRole }: MembersPageProps) {
                   </td>
                   <td className="p-3.5 px-4 border-b border-primary/6 text-sm font-medium align-middle max-lg:hidden">
                     {(() => {
-                      const ss = member.screenshots || {}
-                      const count = [ss.gearscore, ss.pvpStats, ss.medal, ss.attackFeather, ss.defendFeather, ss.gear].filter(Boolean).length
+                      // Merge screenshots from member data and shared context
+                      const contextSs = getMemberScreenshots(member.id)
+                      const ss = { ...member.screenshots, ...contextSs }
+                      const count = [
+                        ss.gearscore, ss.pvpStats, ss.medal, ss.gear,
+                        ss.attackFeather1, ss.attackFeather2, ss.attackFeather3, ss.attackFeather4, ss.attackFeather5,
+                        ss.defendFeather1, ss.defendFeather2, ss.defendFeather3, ss.defendFeather4, ss.defendFeather5
+                      ].filter(Boolean).length
                       if (count === 0) return (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-muted-foreground/20 text-muted-foreground">No Stats</span>
                       )
-                      if (count < 6) return (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gold/20 text-gold">{count}/6 Stats</span>
+                      if (count < 14) return (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gold/20 text-gold">{count}/14 Stats</span>
                       )
                       return (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-accent/20 text-accent">Complete</span>
@@ -470,9 +478,21 @@ export function MembersPage({ userRole }: MembersPageProps) {
       {/* Member Modal */}
       {selectedMember && (
         <MemberModal 
-          member={selectedMember} 
+          member={{
+            ...selectedMember,
+            // Merge screenshots from context
+            screenshots: { ...selectedMember.screenshots, ...getMemberScreenshots(selectedMember.id) }
+          }} 
           onClose={() => setSelectedMember(null)} 
           onUpdateMember={(memberId, updates) => {
+            // Update both local state and context for screenshots
+            if (updates.screenshots) {
+              Object.entries(updates.screenshots).forEach(([key, value]) => {
+                if (key !== 'uploadedAt' && value) {
+                  updateMemberScreenshot(memberId, key as keyof typeof updates.screenshots, value as string)
+                }
+              })
+            }
             setMembers(prev => prev.map(m => 
               m.id === memberId ? { ...m, ...updates } : m
             ))

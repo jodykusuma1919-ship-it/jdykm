@@ -1,17 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useRef } from 'react'
 import type { MemberScreenshots } from '@/lib/data'
-
-// Sample data for current user
-const currentUserData = {
-  id: 1,
-  name: 'Thalderin',
-  role: 'Guild Master' as const,
-  class: { icon: '🧙', name: 'Mage' },
-  gs: 523000,
-  screenshots: {} as MemberScreenshots,
-}
+import { useMemberScreenshots } from '@/contexts/member-screenshots-context'
 
 function ScreenshotUploadCard({ 
   label, 
@@ -99,15 +90,10 @@ function StatsSectionHeader({ title, icon, count }: { title: string; icon: strin
 }
 
 export function MyStatsPage() {
-  const [screenshots, setScreenshots] = useState<MemberScreenshots>(currentUserData.screenshots)
+  const { myScreenshots: screenshots, updateMyScreenshot } = useMemberScreenshots()
 
   const handleScreenshotUpload = (type: keyof MemberScreenshots, url: string) => {
-    setScreenshots(prev => ({
-      ...prev,
-      [type]: url,
-      uploadedAt: new Date().toISOString()
-    }))
-    // In a real app, this would save to the database
+    updateMyScreenshot(type, url)
   }
 
   // Count uploaded feathers

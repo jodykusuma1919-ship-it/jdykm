@@ -342,47 +342,83 @@ export function MemberModal({ member, onClose, onUpdateMember }: MemberModalProp
           {activeTab === 'screenshots' && (
             <div className="animate-in fade-in duration-200">
               <p className="text-xs text-muted-foreground mb-4">Upload screenshots to verify your character stats. These help officers verify your progression.</p>
-              <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
-                <ScreenshotUpload
-                  label="Gearscore"
-                  description="Screenshot showing your GS number"
-                  imageUrl={localMember.screenshots?.gearscore}
-                  onUpload={(url) => handleScreenshotUpload('gearscore', url)}
-                />
-                <ScreenshotUpload
-                  label="PVP Stats"
-                  description="Your PVP ranking and stats"
-                  imageUrl={localMember.screenshots?.pvpStats}
-                  onUpload={(url) => handleScreenshotUpload('pvpStats', url)}
-                />
+              
+              {/* Main Stats */}
+              <div className="mb-4">
+                <h4 className="text-xs font-bold text-muted-foreground mb-3 flex items-center gap-2">
+                  Main Stats
+                  <span className="text-[10px] font-normal text-muted-foreground/60">
+                    ({[localMember.screenshots?.gearscore, localMember.screenshots?.pvpStats, localMember.screenshots?.medal, localMember.screenshots?.gear].filter(Boolean).length}/4)
+                  </span>
+                </h4>
+                <div className="grid grid-cols-2 gap-3 max-[600px]:grid-cols-1">
+                  <ScreenshotUpload
+                    label="Gearscore"
+                    description="Screenshot showing your GS number"
+                    imageUrl={localMember.screenshots?.gearscore}
+                    onUpload={(url) => handleScreenshotUpload('gearscore', url)}
+                  />
+                  <ScreenshotUpload
+                    label="PVP Stats"
+                    description="Your PVP ranking and stats"
+                    imageUrl={localMember.screenshots?.pvpStats}
+                    onUpload={(url) => handleScreenshotUpload('pvpStats', url)}
+                  />
+                  <ScreenshotUpload
+                    label="Medal Collection"
+                    description="Your medal collection"
+                    imageUrl={localMember.screenshots?.medal}
+                    onUpload={(url) => handleScreenshotUpload('medal', url)}
+                  />
+                  <ScreenshotUpload
+                    label="Gear / Equipment"
+                    description="Your equipped gear"
+                    imageUrl={localMember.screenshots?.gear}
+                    onUpload={(url) => handleScreenshotUpload('gear', url)}
+                  />
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1 mt-4">
-                <ScreenshotUpload
-                  label="Medal Collection"
-                  description="Your medal collection"
-                  imageUrl={localMember.screenshots?.medal}
-                  onUpload={(url) => handleScreenshotUpload('medal', url)}
-                />
-                <ScreenshotUpload
-                  label="Gear / Equipment"
-                  description="Your equipped gear"
-                  imageUrl={localMember.screenshots?.gear}
-                  onUpload={(url) => handleScreenshotUpload('gear', url)}
-                />
+
+              {/* Attack Feathers */}
+              <div className="mb-4">
+                <h4 className="text-xs font-bold text-muted-foreground mb-3 flex items-center gap-2">
+                  <span className="text-orange-400">ATK</span> Attack Feathers
+                  <span className="text-[10px] font-normal text-muted-foreground/60">
+                    ({[localMember.screenshots?.attackFeather1, localMember.screenshots?.attackFeather2, localMember.screenshots?.attackFeather3, localMember.screenshots?.attackFeather4, localMember.screenshots?.attackFeather5].filter(Boolean).length}/5)
+                  </span>
+                </h4>
+                <div className="grid grid-cols-5 gap-2 max-lg:grid-cols-3 max-[600px]:grid-cols-2">
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <ScreenshotUpload
+                      key={`atk-${num}`}
+                      label={`ATK ${num}`}
+                      description={`Attack feather tab ${num}`}
+                      imageUrl={localMember.screenshots?.[`attackFeather${num}` as keyof MemberScreenshots] as string | undefined}
+                      onUpload={(url) => handleScreenshotUpload(`attackFeather${num}` as keyof MemberScreenshots, url)}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1 mt-4">
-                <ScreenshotUpload
-                  label="Attack Feather (5 Tabs)"
-                  description="All 5 attack feather tabs"
-                  imageUrl={localMember.screenshots?.attackFeather}
-                  onUpload={(url) => handleScreenshotUpload('attackFeather', url)}
-                />
-                <ScreenshotUpload
-                  label="Defend Feather (5 Tabs)"
-                  description="All 5 defend feather tabs"
-                  imageUrl={localMember.screenshots?.defendFeather}
-                  onUpload={(url) => handleScreenshotUpload('defendFeather', url)}
-                />
+
+              {/* Defend Feathers */}
+              <div>
+                <h4 className="text-xs font-bold text-muted-foreground mb-3 flex items-center gap-2">
+                  <span className="text-blue-400">DEF</span> Defend Feathers
+                  <span className="text-[10px] font-normal text-muted-foreground/60">
+                    ({[localMember.screenshots?.defendFeather1, localMember.screenshots?.defendFeather2, localMember.screenshots?.defendFeather3, localMember.screenshots?.defendFeather4, localMember.screenshots?.defendFeather5].filter(Boolean).length}/5)
+                  </span>
+                </h4>
+                <div className="grid grid-cols-5 gap-2 max-lg:grid-cols-3 max-[600px]:grid-cols-2">
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <ScreenshotUpload
+                      key={`def-${num}`}
+                      label={`DEF ${num}`}
+                      description={`Defend feather tab ${num}`}
+                      imageUrl={localMember.screenshots?.[`defendFeather${num}` as keyof MemberScreenshots] as string | undefined}
+                      onUpload={(url) => handleScreenshotUpload(`defendFeather${num}` as keyof MemberScreenshots, url)}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           )}
