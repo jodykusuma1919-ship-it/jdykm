@@ -166,7 +166,7 @@ function LootHistoryModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; onClose: () => void; onAddAuction: (auction: { id: number; name: string; icon: string; type: string; ilvl: number; category: 'fragmentCard' | 'timespace' | 'lnd'; bids: { user: string; icon: string; dkp: number; time: string }[]; timeRemaining: number }) => void }) {
   const [itemName, setItemName] = useState('')
   const [itemType, setItemType] = useState('Fragment Card')
-  const [duration, setDuration] = useState('5')
+  const [duration, setDuration] = useState('60')
 
   if (!isOpen) return null
 
@@ -206,7 +206,7 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
     onClose()
     setItemName('')
     setItemType('Fragment Card')
-    setDuration('5')
+    setDuration('60')
   }
 
   return (
@@ -245,16 +245,18 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Duration (minutes)</label>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Duration</label>
             <select
               value={duration}
               onChange={e => setDuration(e.target.value)}
               className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
             >
-              <option value="2">2 minutes</option>
-              <option value="5">5 minutes</option>
-              <option value="10">10 minutes</option>
-              <option value="15">15 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="120">2 hours</option>
+              <option value="180">3 hours</option>
+              <option value="240">4 hours</option>
+              <option value="300">5 hours</option>
+              <option value="1440">1 day</option>
             </select>
           </div>
           <div className="flex gap-3 mt-2">

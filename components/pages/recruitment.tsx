@@ -56,18 +56,18 @@ function ApplyModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
       <div 
-        className="bg-card border border-border rounded-2xl w-full max-w-lg my-auto mx-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
+        className="bg-card border border-border rounded-2xl w-full max-w-xl my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-5 border-b border-primary/15">
+        <div className="p-5 border-b border-primary/15 sticky top-0 bg-card z-10">
           <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
-            📋 Submit Application
+            Submit Application
           </h2>
           <p className="text-xs text-muted-foreground mt-1">Fill in your details and upload gear screenshots</p>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4 max-h-[calc(100vh-200px)] overflow-y-auto">
           <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
             <div>
               <label className="block text-xs font-bold text-muted-foreground mb-1.5">Character Name</label>

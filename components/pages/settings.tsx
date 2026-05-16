@@ -87,8 +87,23 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
     timespace: { dkpCost: 150, quantity: 2 },
     lnd: { dkpCost: 200, quantity: 1 },
   })
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const isFullAdmin = canEditAllSettings()
   const canEditBattle = canEditBattleSettings()
+  
+  const handleSaveChanges = () => {
+    setSaveStatus('saving')
+    // Simulate saving to backend/localStorage
+    setTimeout(() => {
+      localStorage.setItem('guildSettings', JSON.stringify({
+        selectedPreset,
+        customValues,
+        lootRewards
+      }))
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 2000)
+    }, 500)
+  }
 
   const presets = [
     { id: '333', icon: '⚔', label: '3-3-3', description: 'Balanced', values: { fragmentCard: 3, timespace: 3, lnd: 3 } },
@@ -139,8 +154,18 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
           </div>
         </div>
         {isFullAdmin && (
-          <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]">
-            💾 Save Changes
+          <button 
+            onClick={handleSaveChanges}
+            disabled={saveStatus === 'saving'}
+            className={`inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap ${
+              saveStatus === 'saved' 
+                ? 'bg-accent text-white shadow-[0_4px_15px_rgba(34,197,94,0.35)]' 
+                : saveStatus === 'saving'
+                ? 'bg-primary/50 text-white/70 cursor-wait'
+                : 'bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]'
+            }`}
+          >
+            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save Changes'}
           </button>
         )}
       </div>
