@@ -34,11 +34,19 @@ export interface LootRewards {
   lnd: { dkpCost: number; quantity: number }
 }
 
+export interface LootInventory {
+  fragmentCard: { current: number; total: number }
+  timespace: { current: number; total: number }
+  lnd: { current: number; total: number }
+}
+
 export interface GuildSettings {
   selectedPreset: string
   bidLimits: BidLimits
   eventBidLimits: EventBidLimits
   lootRewards: LootRewards
+  lootInventory: LootInventory
+  maxDkpPerBid: number
   lootRequests: LootRequest[]
   approvedLoot: LootRequest[]
 }
@@ -48,6 +56,8 @@ interface GuildSettingsContextType {
   updateBidLimits: (limits: BidLimits) => void
   updateEventBidLimits: (eventType: 'gl' | 'woe', limits: BidLimits) => void
   updateLootRewards: (rewards: LootRewards) => void
+  updateLootInventory: (inventory: LootInventory) => void
+  updateMaxDkpPerBid: (maxDkp: number) => void
   updatePreset: (preset: string) => void
   addLootRequest: (request: Omit<LootRequest, 'id' | 'status' | 'requestedAt'>) => void
   processLootRequest: (requestId: string, status: 'approved' | 'declined', processedBy: string) => void
@@ -67,6 +77,12 @@ const defaultSettings: GuildSettings = {
     timespace: { dkpCost: 150, quantity: 2 },
     lnd: { dkpCost: 200, quantity: 1 },
   },
+  lootInventory: {
+    fragmentCard: { current: 127, total: 200 },
+    timespace: { current: 45, total: 100 },
+    lnd: { current: 83, total: 150 },
+  },
+  maxDkpPerBid: 50,
   lootRequests: [],
   approvedLoot: [],
 }
@@ -98,6 +114,8 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
           bidLimits: bidLimits,
           eventBidLimits: parsed.eventBidLimits || defaultSettings.eventBidLimits,
           lootRewards: parsed.lootRewards || defaultSettings.lootRewards,
+          lootInventory: parsed.lootInventory || defaultSettings.lootInventory,
+          maxDkpPerBid: parsed.maxDkpPerBid ?? defaultSettings.maxDkpPerBid,
           lootRequests: parsed.lootRequests || [],
           approvedLoot: parsed.approvedLoot || [],
         })
@@ -131,6 +149,22 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
       ...prev,
       lootRewards: rewards,
     }))
+  }
+
+  const updateLootInventory = (inventory: LootInventory) => {
+    setSettings(prev => {
+      const newSettings = { ...prev, lootInventory: inventory }
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(newSettings))
+      return newSettings
+    })
+  }
+
+  const updateMaxDkpPerBid = (maxDkp: number) => {
+    setSettings(prev => {
+      const newSettings = { ...prev, maxDkpPerBid: maxDkp }
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(newSettings))
+      return newSettings
+    })
   }
 
   const updatePreset = (preset: string) => {
@@ -205,6 +239,8 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
       updateBidLimits,
       updateEventBidLimits,
       updateLootRewards,
+      updateLootInventory,
+      updateMaxDkpPerBid,
       updatePreset,
       addLootRequest,
       processLootRequest,

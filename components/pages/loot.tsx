@@ -15,13 +15,6 @@ interface LootPageProps {
 // Display setting options (20 - 50 range)
 const BIDS_PER_PAGE = 20
 
-// Guild loot inventory remaining
-const guildLootRemaining = {
-  fragmentCard: { current: 127, total: 200 },
-  timespace: { current: 45, total: 100 },
-  lnd: { current: 83, total: 150 },
-}
-
 function AuctionCard({ 
   auction, 
   onBid, 
@@ -515,13 +508,17 @@ const CURRENT_USER = { name: 'Skywalker', icon: '⚔' }
 export function LootPage({ onNavigate, userRole }: LootPageProps) {
   const canManage = canManageLoot(userRole)
   const canApproveRequests = ['Admin', 'Guild Master', 'Vice Master'].includes(userRole)
-  const { settings, processLootRequest } = useGuildSettings()
+  const { settings, processLootRequest, updateLootInventory, updateMaxDkpPerBid } = useGuildSettings()
   const [showNewAuction, setShowNewAuction] = useState(false)
   const [showLootHistory, setShowLootHistory] = useState(false)
   const [activeAuctions, setActiveAuctions] = useState<Auction[]>(auctions as Auction[])
   const [activeTab, setActiveTab] = useState<'auctions' | 'requests' | 'approved'>('auctions')
   const [showBidModal, setShowBidModal] = useState<number | null>(null)
   const [bidAmount, setBidAmount] = useState('')
+  const [editingInventory, setEditingInventory] = useState<'fragmentCard' | 'timespace' | 'lnd' | null>(null)
+  const [editValues, setEditValues] = useState({ current: 0, total: 0 })
+  const [editingMaxDkp, setEditingMaxDkp] = useState(false)
+  const [tempMaxDkp, setTempMaxDkp] = useState(settings.maxDkpPerBid)
   
   // Track user's bid count per category
   const [userBidsCount, setUserBidsCount] = useState<{ fragmentCard: number; timespace: number; lnd: number }>({
@@ -530,10 +527,34 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
     lnd: 0
   })
   
-  // Get bid limits from shared settings
+  // Get settings from shared context
   const bidLimits = settings.bidLimits
+  const guildLootRemaining = settings.lootInventory
+  const maxDkpPerBid = settings.maxDkpPerBid
   const pendingRequests = settings.lootRequests.filter(r => r.status === 'pending')
   const approvedLoot = settings.approvedLoot
+
+  const startEditInventory = (type: 'fragmentCard' | 'timespace' | 'lnd') => {
+    setEditingInventory(type)
+    setEditValues({
+      current: guildLootRemaining[type].current,
+      total: guildLootRemaining[type].total
+    })
+  }
+
+  const saveInventoryEdit = () => {
+    if (!editingInventory) return
+    updateLootInventory({
+      ...guildLootRemaining,
+      [editingInventory]: { current: editValues.current, total: editValues.total }
+    })
+    setEditingInventory(null)
+  }
+
+  const saveMaxDkpEdit = () => {
+    updateMaxDkpPerBid(tempMaxDkp)
+    setEditingMaxDkp(false)
+  }
 
   const handleAddAuction = (newAuction: Auction) => {
     setActiveAuctions(prev => [...prev, newAuction])
@@ -552,6 +573,7 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
 
     const dkpAmount = parseInt(bidAmount)
     if (isNaN(dkpAmount) || dkpAmount <= 0) return
+    if (dkpAmount > maxDkpPerBid) return // Enforce max DKP per bid
 
     // Add bid to auction
     const newBid = {
@@ -614,8 +636,17 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
 
       {/* Guild Loot Inventory Remaining */}
       <div className="grid grid-cols-3 gap-4 mb-5 max-md:grid-cols-1">
+        {/* Fragment Card */}
         <div className="bg-card backdrop-blur-xl border border-purple-500/25 rounded-2xl p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-[25px] opacity-30 pointer-events-none bg-purple-500" />
+          {canManage && (
+            <button 
+              onClick={() => startEditInventory('fragmentCard')}
+              className="absolute top-2 right-2 z-20 w-6 h-6 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-muted-foreground cursor-pointer transition-all"
+            >
+              Edit
+            </button>
+          )}
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-2xl">🃏</div>
             <div className="flex-1">
@@ -629,8 +660,17 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
           </div>
         </div>
 
+        {/* Timespace */}
         <div className="bg-card backdrop-blur-xl border border-cyan-500/25 rounded-2xl p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-[25px] opacity-30 pointer-events-none bg-cyan-500" />
+          {canManage && (
+            <button 
+              onClick={() => startEditInventory('timespace')}
+              className="absolute top-2 right-2 z-20 w-6 h-6 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-muted-foreground cursor-pointer transition-all"
+            >
+              Edit
+            </button>
+          )}
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center text-2xl">🔮</div>
             <div className="flex-1">
@@ -644,8 +684,17 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
           </div>
         </div>
 
+        {/* LND */}
         <div className="bg-card backdrop-blur-xl border border-amber-500/25 rounded-2xl p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-[25px] opacity-30 pointer-events-none bg-amber-500" />
+          {canManage && (
+            <button 
+              onClick={() => startEditInventory('lnd')}
+              className="absolute top-2 right-2 z-20 w-6 h-6 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-muted-foreground cursor-pointer transition-all"
+            >
+              Edit
+            </button>
+          )}
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl">⚡</div>
             <div className="flex-1">
@@ -659,6 +708,55 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Max DKP Per Bid Setting - Admin Only */}
+      {canManage && (
+        <div className="bg-card backdrop-blur-xl border border-gold/25 rounded-xl p-4 mb-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center text-xl">💰</div>
+              <div>
+                <div className="text-xs text-muted-foreground font-semibold">Max DKP Per Bid</div>
+                <div className="text-sm text-foreground">Members cannot bid more than this amount</div>
+              </div>
+            </div>
+            {editingMaxDkp ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={tempMaxDkp}
+                  onChange={e => setTempMaxDkp(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-20 bg-white/4 border border-gold/30 rounded-lg py-1.5 px-3 text-foreground text-sm font-mono outline-none focus:border-gold"
+                  min="1"
+                />
+                <button 
+                  onClick={saveMaxDkpEdit}
+                  className="py-1.5 px-3 rounded-lg text-xs font-bold bg-gold/20 text-gold border border-gold/30 hover:bg-gold/30 cursor-pointer transition-all"
+                >
+                  Save
+                </button>
+                <button 
+                  onClick={() => setEditingMaxDkp(false)}
+                  className="py-1.5 px-3 rounded-lg text-xs font-bold bg-white/5 text-muted-foreground border border-white/15 hover:bg-white/10 cursor-pointer transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-2xl font-bold text-gold">{maxDkpPerBid}</span>
+                <span className="text-sm text-muted-foreground">DKP</span>
+                <button 
+                  onClick={() => { setTempMaxDkp(maxDkpPerBid); setEditingMaxDkp(true) }}
+                  className="py-1 px-2 rounded-md text-[10px] font-bold bg-white/10 text-muted-foreground hover:bg-white/20 cursor-pointer transition-all"
+                >
+                  Edit
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Bid Limit Banner - GL & WOE */}
       <div className="flex items-center gap-3.5 flex-wrap bg-primary/8 border border-primary/25 rounded-xl p-3 px-5 mb-5">
@@ -927,25 +1025,38 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
             </div>
             <div className="p-5 flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1.5">DKP Amount</label>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">
+                  DKP Amount <span className="text-gold">(Max: {maxDkpPerBid})</span>
+                </label>
                 <input
                   type="number"
                   value={bidAmount}
-                  onChange={e => setBidAmount(e.target.value)}
-                  placeholder="Enter DKP amount..."
+                  onChange={e => {
+                    const val = e.target.value
+                    // Allow empty or valid numbers up to max
+                    if (val === '' || (parseInt(val) >= 0 && parseInt(val) <= maxDkpPerBid)) {
+                      setBidAmount(val)
+                    }
+                  }}
+                  placeholder={`Enter DKP amount (1-${maxDkpPerBid})...`}
                   min="1"
+                  max={maxDkpPerBid}
                   className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
                   autoFocus
                 />
+                {parseInt(bidAmount) > maxDkpPerBid && (
+                  <div className="text-[11px] text-destructive mt-1">Maximum DKP per bid is {maxDkpPerBid}</div>
+                )}
               </div>
-              <div className="text-xs text-muted-foreground/70">
-                Your remaining bids for this category: <span className="font-mono font-bold text-gold">
+              <div className="flex items-center justify-between text-xs text-muted-foreground/70">
+                <span>Remaining bids: <span className="font-mono font-bold text-gold">
                   {(() => {
                     const auction = activeAuctions.find(a => a.id === showBidModal)
                     if (!auction) return 0
                     return Math.max(0, (bidLimits[auction.category] || 2) - (userBidsCount[auction.category] || 0))
                   })()}
-                </span>
+                </span></span>
+                <span>Max: <span className="font-mono font-bold text-gold">{maxDkpPerBid} DKP</span></span>
               </div>
               <div className="flex gap-3 mt-2">
                 <button
@@ -957,14 +1068,67 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
                 </button>
                 <button
                   onClick={confirmBid}
-                  disabled={!bidAmount || parseInt(bidAmount) <= 0}
+                  disabled={!bidAmount || parseInt(bidAmount) <= 0 || parseInt(bidAmount) > maxDkpPerBid}
                   className={`flex-1 py-2.5 px-4 rounded-xl border-none font-sans text-sm font-bold tracking-wide transition-all duration-200 ${
-                    bidAmount && parseInt(bidAmount) > 0
+                    bidAmount && parseInt(bidAmount) > 0 && parseInt(bidAmount) <= maxDkpPerBid
                       ? 'cursor-pointer bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]'
                       : 'cursor-not-allowed bg-gray-600/50 text-gray-400 opacity-60'
                   }`}
                 >
                   Confirm Bid
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Inventory Modal */}
+      {editingInventory && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditingInventory(null)}>
+          <div 
+            className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-primary/15">
+              <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+                Edit {editingInventory === 'fragmentCard' ? 'Fragment Card' : editingInventory === 'timespace' ? 'Timespace' : 'LND'} Inventory
+              </h2>
+            </div>
+            <div className="p-5 flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">Current Amount</label>
+                <input
+                  type="number"
+                  value={editValues.current}
+                  onChange={e => setEditValues(prev => ({ ...prev, current: Math.max(0, parseInt(e.target.value) || 0) }))}
+                  min="0"
+                  className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">Total Capacity</label>
+                <input
+                  type="number"
+                  value={editValues.total}
+                  onChange={e => setEditValues(prev => ({ ...prev, total: Math.max(1, parseInt(e.target.value) || 1) }))}
+                  min="1"
+                  className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+                />
+              </div>
+              <div className="flex gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingInventory(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-transparent text-muted-foreground border border-white/15 hover:bg-white/5 hover:border-white/25"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveInventoryEdit}
+                  className="flex-1 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+                >
+                  Save Changes
                 </button>
               </div>
             </div>
