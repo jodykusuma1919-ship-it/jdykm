@@ -119,9 +119,8 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
 
       {/* Widgets */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4 mb-7">
-        <WidgetCard icon="👥" value="247" label="Total Members" change="↑ +3 this week" changeType="up" glowColor="bg-primary" />
-        <WidgetCard icon="🟢" value="28" label="Active Now" change="↑ Peak 64 today" changeType="up" glowColor="bg-accent" />
-        <WidgetCard icon="✅" value="87%" label="Weekly Attendance" change="↑ +5% vs last week" changeType="up" glowColor="bg-gold" />
+        <WidgetCard icon="👥" value="247" label="Total Members" change="Guild roster" changeType="info" glowColor="bg-primary" />
+        <WidgetCard icon="✅" value="0%" label="Weekly Attendance" change="Starting fresh" changeType="info" glowColor="bg-gold" />
         <WidgetCard icon="⚡" value="142" label="Loot Distributed" change="↑ 18 this raid" changeType="up" glowColor="bg-cyan" />
         <WidgetCard icon="🔨" value="3" label="Live Auctions" change="⏱ 14 min left" changeType="info" glowColor="bg-destructive" />
         <WidgetCard icon="📅" value="5" label="Upcoming Events" change="🗓 Next: Tonight" changeType="info" glowColor="bg-blue" />

@@ -1,43 +1,20 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { getRoleColor } from '@/lib/roles'
 import { useGuildSettings, type LootRequest } from '@/contexts/guild-settings-context'
-import type { MemberScreenshots } from '@/lib/data'
+import { useMemberDkp } from '@/contexts/member-dkp-context'
 
-// Sample data for current user
-const currentUserData = {
+// Static user profile data (DKP values come from context)
+const currentUserProfile = {
   id: 1,
   name: 'Thalderin',
   role: 'Guild Master' as const,
   class: { icon: '🧙', name: 'Mage' },
-  dkp: 2450,
-  weeklyEarned: 320,
-  weeklySpent: 150,
-  attendance: 94,
   gs: 523000,
-  // Remaining bids for each category
-  remaining: {
-    fragmentCard: 38,
-    timespace: 47,
-    lnd: 45,
-  },
-  // Bid limits
-  limits: {
-    fragmentCard: 40,
-    timespace: 50,
-    lnd: 50,
-  },
-  screenshots: {} as MemberScreenshots,
 }
 
-const dkpHistory = [
-  { id: '1', type: 'earn', amount: 150, reason: 'Dragon Lair Raid', date: '2 hours ago' },
-  { id: '2', type: 'spend', amount: 420, reason: 'Won Fragment Card x3', date: 'Yesterday' },
-  { id: '3', type: 'earn', amount: 100, reason: 'Weekly Attendance Bonus', date: '2 days ago' },
-  { id: '4', type: 'earn', amount: 50, reason: 'Event Participation', date: '3 days ago' },
-  { id: '5', type: 'spend', amount: 200, reason: 'Won Timespace x2', date: '4 days ago' },
-]
+
 
 function StatCard({ icon, value, label, subLabel, color }: { 
   icon: string
@@ -250,95 +227,14 @@ function PendingRequestCard({ request }: { request: LootRequest }) {
   )
 }
 
-function ScreenshotUploadCard({ 
-  label, 
-  icon,
-  description, 
-  imageUrl, 
-  onUpload,
-  color
-}: { 
-  label: string
-  icon: string
-  description: string
-  imageUrl?: string
-  onUpload: (url: string) => void
-  color: string
-}) {
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const url = URL.createObjectURL(file)
-      onUpload(url)
-    }
-  }
-
-  return (
-    <div className={`bg-card backdrop-blur-xl border rounded-2xl p-4 ${color}`}>
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xl">{icon}</span>
-        <div>
-          <div className="text-sm font-bold text-foreground">{label}</div>
-          <div className="text-[10px] text-muted-foreground/70">{description}</div>
-        </div>
-      </div>
-      {imageUrl ? (
-        <div className="relative group">
-          <img src={imageUrl} alt={label} className="w-full h-32 object-cover rounded-xl border border-white/10" />
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
-            <button 
-              onClick={() => window.open(imageUrl, '_blank')}
-              className="py-1.5 px-3 rounded-lg text-xs font-bold bg-white/20 text-white hover:bg-white/30 transition-all"
-            >
-              View
-            </button>
-            <button 
-              onClick={() => inputRef.current?.click()}
-              className="py-1.5 px-3 rounded-lg text-xs font-bold bg-primary/80 text-white hover:bg-primary transition-all"
-            >
-              Replace
-            </button>
-          </div>
-          <span className="absolute top-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded bg-accent/80 text-white">Uploaded</span>
-        </div>
-      ) : (
-        <button 
-          onClick={() => inputRef.current?.click()}
-          className="w-full h-28 border-2 border-dashed border-primary/25 rounded-xl flex flex-col items-center justify-center gap-2 text-muted-foreground/60 hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
-        >
-          <span className="text-2xl">📷</span>
-          <span className="text-xs font-semibold">Click to Upload</span>
-        </button>
-      )}
-      <input 
-        ref={inputRef}
-        type="file" 
-        accept="image/*" 
-        className="hidden" 
-        onChange={handleFileChange}
-      />
-    </div>
-  )
-}
-
 export function MyDkpPage() {
   const { settings, addLootRequest } = useGuildSettings()
+  const { getMyDkp } = useMemberDkp()
+  const myDkp = getMyDkp()
   const [requestModal, setRequestModal] = useState<{ open: boolean; type: 'Fragment Card' | 'LND' | 'Timespace' }>({ open: false, type: 'Fragment Card' })
-  const [screenshots, setScreenshots] = useState<MemberScreenshots>(currentUserData.screenshots)
 
   const openRequest = (type: 'Fragment Card' | 'LND' | 'Timespace') => {
     setRequestModal({ open: true, type })
-  }
-
-  const handleScreenshotUpload = (type: keyof MemberScreenshots, url: string) => {
-    setScreenshots(prev => ({
-      ...prev,
-      [type]: url,
-      uploadedAt: new Date().toISOString()
-    }))
-    // In a real app, this would save to the database
   }
 
   const getDkpCost = (type: 'Fragment Card' | 'LND' | 'Timespace') => {
@@ -352,9 +248,9 @@ export function MyDkpPage() {
   const handleSubmitRequest = (quantity: number, note: string) => {
     const dkpCost = getDkpCost(requestModal.type) * quantity
     addLootRequest({
-      memberId: currentUserData.id,
-      memberName: currentUserData.name,
-      memberClass: currentUserData.class,
+      memberId: currentUserProfile.id,
+      memberName: currentUserProfile.name,
+      memberClass: currentUserProfile.class,
       itemType: requestModal.type,
       quantity,
       dkpCost,
@@ -364,7 +260,7 @@ export function MyDkpPage() {
 
   // Get pending requests for current user
   const myPendingRequests = settings.lootRequests.filter(
-    r => r.memberId === currentUserData.id && r.status === 'pending'
+    r => r.memberId === currentUserProfile.id && r.status === 'pending'
   )
 
   // Calculate total pending DKP
@@ -378,10 +274,10 @@ export function MyDkpPage() {
             <span className="text-2xl">👤</span> My DKP
           </h1>
           <div className="flex items-center gap-3 mt-2">
-            <span className="text-lg">{currentUserData.class.icon}</span>
-            <span className="text-sm font-bold text-foreground">{currentUserData.name}</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(currentUserData.role)}`}>
-              {currentUserData.role}
+            <span className="text-lg">{currentUserProfile.class.icon}</span>
+            <span className="text-sm font-bold text-foreground">{currentUserProfile.name}</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(currentUserProfile.role)}`}>
+              {currentUserProfile.role}
             </span>
           </div>
         </div>
@@ -391,102 +287,29 @@ export function MyDkpPage() {
       <div className="grid grid-cols-4 gap-4 mb-7 max-md:grid-cols-2 max-sm:grid-cols-1">
         <StatCard 
           icon="💎" 
-          value={currentUserData.dkp.toLocaleString()} 
+          value={myDkp.dkp.toLocaleString()} 
           label="Current DKP" 
           subLabel={totalPendingDkp > 0 ? `${totalPendingDkp} DKP pending` : undefined}
           color="bg-gold" 
         />
         <StatCard 
           icon="📈" 
-          value={`+${currentUserData.weeklyEarned}`} 
+          value={`+${myDkp.weeklyEarned}`} 
           label="Earned This Week" 
           color="bg-accent" 
         />
         <StatCard 
           icon="📉" 
-          value={`-${currentUserData.weeklySpent}`} 
+          value={`-${myDkp.weeklySpent}`} 
           label="Spent This Week" 
           color="bg-destructive" 
         />
         <StatCard 
           icon="✅" 
-          value={`${currentUserData.attendance}%`} 
+          value={`${myDkp.attendance}%`} 
           label="Attendance Rate" 
           color="bg-primary" 
         />
-      </div>
-
-      {/* My Character Stats Section */}
-      <div className="mb-7">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-            My Character Stats
-            <span className="text-xs font-normal text-muted-foreground">(Upload screenshots for verification)</span>
-          </h2>
-          {screenshots.uploadedAt && (
-            <span className="text-[10px] text-muted-foreground">
-              Last updated: {new Date(screenshots.uploadedAt).toLocaleDateString()}
-            </span>
-          )}
-        </div>
-        <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
-          <ScreenshotUploadCard
-            label="Gear Score"
-            icon="GS"
-            description="Screenshot showing your GS"
-            imageUrl={screenshots.gearscore}
-            onUpload={(url) => handleScreenshotUpload('gearscore', url)}
-            color="border-cyan-500/25"
-          />
-          <ScreenshotUploadCard
-            label="PVP Stats"
-            icon="PVP"
-            description="Your PVP ranking and stats"
-            imageUrl={screenshots.pvpStats}
-            onUpload={(url) => handleScreenshotUpload('pvpStats', url)}
-            color="border-destructive/25"
-          />
-          <ScreenshotUploadCard
-            label="Medal Collection"
-            icon="M"
-            description="Your medal collection"
-            imageUrl={screenshots.medal}
-            onUpload={(url) => handleScreenshotUpload('medal', url)}
-            color="border-gold/25"
-          />
-          <ScreenshotUploadCard
-            label="Attack Feather"
-            icon="ATK"
-            description="All 5 attack feather tabs"
-            imageUrl={screenshots.attackFeather}
-            onUpload={(url) => handleScreenshotUpload('attackFeather', url)}
-            color="border-orange-500/25"
-          />
-          <ScreenshotUploadCard
-            label="Defend Feather"
-            icon="DEF"
-            description="All 5 defend feather tabs"
-            imageUrl={screenshots.defendFeather}
-            onUpload={(url) => handleScreenshotUpload('defendFeather', url)}
-            color="border-blue-500/25"
-          />
-          <ScreenshotUploadCard
-            label="Gear / Equipment"
-            icon="EQ"
-            description="Your equipped gear"
-            imageUrl={screenshots.gear}
-            onUpload={(url) => handleScreenshotUpload('gear', url)}
-            color="border-purple-500/25"
-          />
-        </div>
-        <div className="mt-3 p-3 bg-primary/5 border border-primary/15 rounded-xl">
-          <div className="flex items-start gap-2">
-            <span className="text-sm">Info:</span>
-            <p className="text-xs text-muted-foreground">
-              Upload screenshots of your character stats for guild leadership to verify. These help officers track member progression and assign appropriate roles. All members are required to keep their stats updated.
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Pending Requests Section */}
@@ -514,22 +337,22 @@ export function MyDkpPage() {
           <RemainingBidsCard 
             type="Fragment Card" 
             icon="🃏" 
-            remaining={currentUserData.remaining.fragmentCard} 
-            limit={currentUserData.limits.fragmentCard}
+            remaining={myDkp.remaining.fragmentCard} 
+            limit={myDkp.limits.fragmentCard}
             color="bg-purple-500/20 text-purple-400"
           />
           <RemainingBidsCard 
             type="Timespace" 
             icon="🔮" 
-            remaining={currentUserData.remaining.timespace} 
-            limit={currentUserData.limits.timespace}
+            remaining={myDkp.remaining.timespace} 
+            limit={myDkp.limits.timespace}
             color="bg-cyan-500/20 text-cyan-400"
           />
           <RemainingBidsCard 
             type="LND" 
             icon="⚡" 
-            remaining={currentUserData.remaining.lnd} 
-            limit={currentUserData.limits.lnd}
+            remaining={myDkp.remaining.lnd} 
+            limit={myDkp.limits.lnd}
             color="bg-amber-500/20 text-amber-400"
           />
         </div>
@@ -610,23 +433,31 @@ export function MyDkpPage() {
       {/* DKP History */}
       <div className="bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden">
         <div className="p-4 px-6 border-b border-primary/10 text-sm font-bold text-foreground flex items-center justify-between">
-          <span>📋 Your DKP History</span>
+          <span>Your DKP History</span>
           <button className="text-xs text-primary-light hover:underline">View All</button>
         </div>
-        {dkpHistory.map((item) => (
-          <div key={item.id} className="flex items-center gap-4 p-4 px-6 border-b border-primary/6 last:border-b-0 hover:bg-primary/5 transition-colors">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${item.type === 'earn' ? 'bg-accent/20' : 'bg-destructive/20'}`}>
-              {item.type === 'earn' ? '📈' : '📉'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-foreground">{item.reason}</div>
-              <div className="text-xs text-muted-foreground/70">{item.date}</div>
-            </div>
-            <div className={`font-mono text-sm font-bold ${item.type === 'earn' ? 'text-accent' : 'text-destructive'}`}>
-              {item.type === 'earn' ? '+' : '-'}{item.amount} DKP
-            </div>
+        {myDkp.history.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="text-4xl mb-3">📋</div>
+            <div className="text-sm text-muted-foreground">No DKP history yet</div>
+            <div className="text-xs text-muted-foreground/70 mt-1">Your DKP transactions will appear here</div>
           </div>
-        ))}
+        ) : (
+          myDkp.history.slice(0, 10).map((item) => (
+            <div key={item.id} className="flex items-center gap-4 p-4 px-6 border-b border-primary/6 last:border-b-0 hover:bg-primary/5 transition-colors">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${item.type === 'earn' ? 'bg-accent/20' : 'bg-destructive/20'}`}>
+                {item.type === 'earn' ? '📈' : '📉'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-foreground">{item.reason}</div>
+                <div className="text-xs text-muted-foreground/70">{item.date}</div>
+              </div>
+              <div className={`font-mono text-sm font-bold ${item.type === 'earn' ? 'text-accent' : 'text-destructive'}`}>
+                {item.type === 'earn' ? '+' : '-'}{item.amount} DKP
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <RequestModal 

@@ -9,6 +9,7 @@ import { DashboardPage } from '@/components/pages/dashboard'
 import { MembersPage } from '@/components/pages/members'
 import { DkpPage } from '@/components/pages/dkp'
 import { MyDkpPage } from '@/components/pages/my-dkp'
+import { MyStatsPage } from '@/components/pages/my-stats'
 import { LootPage } from '@/components/pages/loot'
 import { EventsPage } from '@/components/pages/events'
 import { AttendancePage } from '@/components/pages/attendance'
@@ -19,13 +20,14 @@ import { PartiesPage } from '@/components/pages/parties'
 import { BattlefieldPage } from '@/components/pages/battlefield'
 import type { GuildRole } from '@/contexts/auth-context'
 
-export type Page = 'dashboard' | 'members' | 'dkp' | 'my-dkp' | 'loot' | 'events' | 'attendance' | 'analytics' | 'recruitment' | 'settings' | 'parties' | 'battlefield'
+export type Page = 'dashboard' | 'members' | 'dkp' | 'my-dkp' | 'my-stats' | 'loot' | 'events' | 'attendance' | 'analytics' | 'recruitment' | 'settings' | 'parties' | 'battlefield'
 
 const pageLabels: Record<Page, string> = {
   dashboard: 'Dashboard',
   members: 'Guild Members',
   dkp: 'DKP System',
   'my-dkp': 'My DKP',
+  'my-stats': 'My Character Stats',
   loot: 'Loot Management',
   events: 'Events',
   attendance: 'Attendance',
@@ -94,6 +96,7 @@ function GuildApp() {
         {currentPage === 'members' && <MembersPage userRole={userRole} />}
         {currentPage === 'dkp' && <DkpPage />}
         {currentPage === 'my-dkp' && <MyDkpPage />}
+        {currentPage === 'my-stats' && <MyStatsPage />}
         {currentPage === 'loot' && <LootPage onNavigate={navigate} userRole={userRole} />}
         {currentPage === 'events' && <EventsPage onNavigate={navigate} userRole={userRole} />}
         {currentPage === 'attendance' && <AttendancePage />}
