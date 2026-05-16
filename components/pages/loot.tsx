@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Page } from '@/app/page'
-import { auctions, allMembers } from '@/lib/data'
+import { auctions } from '@/lib/data'
 
 interface LootPageProps {
   onNavigate: (page: Page) => void
@@ -167,9 +167,9 @@ export function LootPage({ onNavigate }: LootPageProps) {
   const [showNewAuction, setShowNewAuction] = useState(false)
   
   const lootHistory = [
-    { icon: '🗡', type: 'AUCTION WIN', text: '<b>Karath</b> won <span class="hl">Fragment Card ×3</span> for <span class="gold">290 DKP</span>', time: 'Yesterday' },
-    { icon: '🧝', type: 'ROLL WIN', text: '<b>Lyrath</b> won <span class="hl">Timespace Fragment ×3</span> with roll <span class="green">97</span>', time: '2 days ago' },
-    { icon: '⚔', type: 'AUCTION WIN', text: '<b>Valdris</b> won <span class="hl">LND Piece</span> for <span class="gold">520 DKP</span>', time: '3 days ago' },
+    { icon: '🃏', type: 'AUCTION WIN', text: '<b>Karath</b> won <span class="hl">Fragment Card x3</span> for <span class="gold">290 DKP</span>', time: 'Yesterday' },
+    { icon: '🔮', type: 'ROLL WIN', text: '<b>Lyrath</b> won <span class="hl">Time Space x3</span> with roll <span class="green">97</span>', time: '2 days ago' },
+    { icon: '⚡', type: 'AUCTION WIN', text: '<b>Valdris</b> won <span class="hl">LND Piece</span> for <span class="gold">520 DKP</span>', time: '3 days ago' },
   ]
 
   return (

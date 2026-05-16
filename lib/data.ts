@@ -5,6 +5,18 @@ export interface GameClass {
   icon: string
 }
 
+export interface MemberBidLimits {
+  fragmentCard: number
+  timespace: number
+  lnd: number
+}
+
+export interface MemberScreenshots {
+  gearscore?: string
+  feather?: string
+  medal?: string
+}
+
 export interface Member {
   id: number
   name: string
@@ -18,6 +30,8 @@ export interface Member {
   gs: number
   discord: string
   totalRaids: number
+  bidLimits: MemberBidLimits
+  screenshots: MemberScreenshots
 }
 
 export interface Auction {
@@ -26,7 +40,7 @@ export interface Auction {
   icon: string
   type: string
   ilvl: number
-  category: 'main' | 'fragment' | 'timespace'
+  category: 'fragmentCard' | 'timespace' | 'lnd'
   bids: { user: string; icon: string; dkp: number; time: string }[]
   timeRemaining: number
 }
@@ -40,6 +54,7 @@ export interface GuildEvent {
   details: string
   rsvp: { confirmed: number; total: number }
   dkpReward: number
+  attendees?: string[]
 }
 
 export interface Recruit {
@@ -98,14 +113,6 @@ export const roleIcons: Record<string, string> = {
   'Recruit': '🌱',
 }
 
-function rng(s: number, e: number): number {
-  return Math.floor(Math.random() * (e - s + 1)) + s
-}
-
-function roll(n: number): boolean {
-  return Math.random() < n
-}
-
 // Generate members deterministically for SSR
 function generateMembers(): Member[] {
   // Use a seeded random for consistent data
@@ -142,6 +149,12 @@ function generateMembers(): Member[] {
       gs: seededRng(480, 520),
       discord: `@${n.toLowerCase()}`,
       totalRaids: seededRng(5, 100),
+      bidLimits: {
+        fragmentCard: 2,
+        timespace: 2,
+        lnd: 2,
+      },
+      screenshots: {},
     }
   })
 }
@@ -151,11 +164,11 @@ export const allMembers: Member[] = generateMembers()
 export const auctions: Auction[] = [
   {
     id: 1,
-    name: 'Shadowfang Executioner',
-    icon: '⚔',
-    type: 'Legendary Weapon · Two-Handed Sword · ilvl 510',
-    ilvl: 510,
-    category: 'main',
+    name: 'Fragment Card',
+    icon: '🃏',
+    type: 'Fragment Card · Enhancement · Bound on pickup',
+    ilvl: 0,
+    category: 'fragmentCard',
     bids: [
       { user: 'Valdris', icon: '🧙', dkp: 680, time: 'HIGHEST' },
       { user: 'Thorgur', icon: '⚔', dkp: 550, time: '2m ago' },
@@ -165,11 +178,11 @@ export const auctions: Auction[] = [
   },
   {
     id: 2,
-    name: 'Voidweave Spellcloak',
-    icon: '🧝',
-    type: 'Epic Chest Armor · Cloth · ilvl 495',
-    ilvl: 495,
-    category: 'main',
+    name: 'LND',
+    icon: '⚡',
+    type: 'LND · Special Item · Bound on pickup',
+    ilvl: 0,
+    category: 'lnd',
     bids: [
       { user: 'Selara', icon: '🧝', dkp: 420, time: 'HIGHEST' },
       { user: 'Miravel', icon: '🧙', dkp: 350, time: '3m ago' },
@@ -178,11 +191,11 @@ export const auctions: Auction[] = [
   },
   {
     id: 3,
-    name: 'Voidheart Fragment ×5',
+    name: 'Time Space',
     icon: '🔮',
-    type: 'Fragment Card · Enhancement · Bound on pickup',
+    type: 'Timespace · Enhancement · Bound on pickup',
     ilvl: 0,
-    category: 'fragment',
+    category: 'timespace',
     bids: [
       { user: 'Thorgur', icon: '🛡', dkp: 310, time: 'HIGHEST' },
       { user: 'Daerith', icon: '⚔', dkp: 280, time: '1m ago' },
@@ -192,7 +205,7 @@ export const auctions: Auction[] = [
   },
 ]
 
-export const guildEvents: GuildEvent[] = [
+export const defaultGuildEvents: GuildEvent[] = [
   {
     id: 1,
     name: 'Abyssal Citadel Raid',
@@ -202,6 +215,7 @@ export const guildEvents: GuildEvent[] = [
     details: '25-man · Ilvl 480+',
     rsvp: { confirmed: 18, total: 25 },
     dkpReward: 100,
+    attendees: [],
   },
   {
     id: 2,
@@ -212,6 +226,7 @@ export const guildEvents: GuildEvent[] = [
     details: 'Open World · All ranks',
     rsvp: { confirmed: 34, total: 40 },
     dkpReward: 100,
+    attendees: [],
   },
   {
     id: 3,
@@ -222,6 +237,7 @@ export const guildEvents: GuildEvent[] = [
     details: 'Voice channel',
     rsvp: { confirmed: 7, total: 8 },
     dkpReward: 0,
+    attendees: [],
   },
   {
     id: 4,
@@ -232,6 +248,7 @@ export const guildEvents: GuildEvent[] = [
     details: '10-man · Weekly reset',
     rsvp: { confirmed: 6, total: 10 },
     dkpReward: 100,
+    attendees: [],
   },
   {
     id: 5,
@@ -242,6 +259,7 @@ export const guildEvents: GuildEvent[] = [
     details: '25-man · Mythic progression',
     rsvp: { confirmed: 22, total: 25 },
     dkpReward: 150,
+    attendees: [],
   },
   {
     id: 6,
@@ -252,6 +270,7 @@ export const guildEvents: GuildEvent[] = [
     details: 'Capture objectives · Team event',
     rsvp: { confirmed: 28, total: 40 },
     dkpReward: 75,
+    attendees: [],
   },
   {
     id: 7,
@@ -262,6 +281,7 @@ export const guildEvents: GuildEvent[] = [
     details: 'Meet new recruits · Social event',
     rsvp: { confirmed: 15, total: 30 },
     dkpReward: 50,
+    attendees: [],
   },
 ]
 
@@ -330,7 +350,7 @@ export const recruits: Recruit[] = [
 
 export const activityFeed = [
   { icon: '⚔', type: 'DKP', text: '<b>Valdris</b> received <span class="gold">+150 DKP</span> for <span class="hl">Dragon Lair Raid</span> completion', time: '2 minutes ago' },
-  { icon: '🧝', type: 'LOOT', text: '<b>Selara</b> won <span class="hl">Voidweave Spellcloak</span> via auction for <span class="gold">420 DKP</span>', time: '8 minutes ago' },
+  { icon: '🧝', type: 'LOOT', text: '<b>Selara</b> won <span class="hl">LND</span> via auction for <span class="gold">420 DKP</span>', time: '8 minutes ago' },
   { icon: '🛡', type: 'JOIN', text: '<b>Korrath</b> joined the guild as <span class="hl">Recruit</span>', time: '21 minutes ago' },
   { icon: '🗡', type: 'EVENT', text: '<b>Thalderin</b> scheduled <span class="hl">Abyssal Citadel Raid</span> for tonight 20:00 UTC', time: '1 hour ago' },
   { icon: '🧙', type: 'DKP', text: '<b>Miravel</b> had <span class="gold">-80 DKP</span> removed for missed raid attendance', time: '3 hours ago' },

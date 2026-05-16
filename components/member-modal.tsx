@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { roleColors, roleIcons } from '@/lib/data'
-import type { Member } from '@/lib/data'
+import { useState, useRef } from 'react'
+import { roleColors, roleIcons, roles } from '@/lib/data'
+import type { Member, MemberBidLimits, MemberScreenshots } from '@/lib/data'
 
 interface MemberModalProps {
   member: Member
   onClose: () => void
+  onUpdateMember?: (memberId: number, updates: Partial<Member>) => void
 }
 
 function StatusBadge({ status }: { status: Member['status'] }) {
@@ -25,8 +26,173 @@ function StatusBadge({ status }: { status: Member['status'] }) {
   )
 }
 
-export function MemberModal({ member, onClose }: MemberModalProps) {
-  const [activeTab, setActiveTab] = useState<'character' | 'dkp' | 'loot'>('character')
+function ScreenshotUpload({ 
+  label, 
+  description, 
+  imageUrl, 
+  onUpload 
+}: { 
+  label: string
+  description: string
+  imageUrl?: string
+  onUpload: (url: string) => void 
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const url = URL.createObjectURL(file)
+      onUpload(url)
+    }
+  }
+
+  return (
+    <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
+      <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">{label}</div>
+      <div className="text-[10px] text-muted-foreground/50 mb-2">{description}</div>
+      {imageUrl ? (
+        <div className="relative">
+          <img src={imageUrl} alt={label} className="w-full h-24 object-cover rounded-lg border border-primary/20" />
+          <button 
+            onClick={() => inputRef.current?.click()}
+            className="absolute top-1 right-1 w-6 h-6 rounded bg-black/60 text-white text-xs flex items-center justify-center hover:bg-black/80"
+          >
+            ✏
+          </button>
+        </div>
+      ) : (
+        <button 
+          onClick={() => inputRef.current?.click()}
+          className="w-full h-20 border-2 border-dashed border-primary/25 rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground/60 hover:border-primary/50 hover:bg-primary/5 transition-all"
+        >
+          <span className="text-lg">📷</span>
+          <span className="text-[10px] font-semibold">Upload Screenshot</span>
+        </button>
+      )}
+      <input 
+        ref={inputRef}
+        type="file" 
+        accept="image/*" 
+        className="hidden" 
+        onChange={handleFileChange}
+      />
+    </div>
+  )
+}
+
+function EditRoleModal({ 
+  member, 
+  isOpen, 
+  onClose, 
+  onSave 
+}: { 
+  member: Member
+  isOpen: boolean
+  onClose: () => void
+  onSave: (role: string, bidLimits: MemberBidLimits) => void
+}) {
+  const [selectedRole, setSelectedRole] = useState(member.role)
+  const [bidLimits, setBidLimits] = useState<MemberBidLimits>(member.bidLimits || { fragmentCard: 2, timespace: 2, lnd: 2 })
+
+  if (!isOpen) return null
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSave(selectedRole, bidLimits)
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1001] p-4" onClick={onClose}>
+      <div 
+        className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 border-b border-primary/15">
+          <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+            ✏ Edit Role & Bid Limits
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">For {member.name}</p>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Guild Role</label>
+            <select
+              value={selectedRole}
+              onChange={e => setSelectedRole(e.target.value)}
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+            >
+              {roles.map(role => (
+                <option key={role} value={role}>{roleIcons[role]} {role}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="border-t border-primary/10 pt-4">
+            <label className="block text-xs font-bold text-muted-foreground mb-3">Max Bid Limits (per category)</label>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between bg-white/3 rounded-lg p-3">
+                <span className="text-sm text-foreground">🃏 Fragment Card</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={bidLimits.fragmentCard}
+                  onChange={e => setBidLimits(prev => ({ ...prev, fragmentCard: parseInt(e.target.value) || 0 }))}
+                  className="w-16 bg-white/4 border border-primary/20 rounded-lg py-1.5 px-2 text-center text-foreground text-sm font-mono font-bold outline-none focus:border-primary"
+                />
+              </div>
+              <div className="flex items-center justify-between bg-white/3 rounded-lg p-3">
+                <span className="text-sm text-foreground">🔮 Timespace</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={bidLimits.timespace}
+                  onChange={e => setBidLimits(prev => ({ ...prev, timespace: parseInt(e.target.value) || 0 }))}
+                  className="w-16 bg-white/4 border border-primary/20 rounded-lg py-1.5 px-2 text-center text-foreground text-sm font-mono font-bold outline-none focus:border-primary"
+                />
+              </div>
+              <div className="flex items-center justify-between bg-white/3 rounded-lg p-3">
+                <span className="text-sm text-foreground">⚡ LND</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={bidLimits.lnd}
+                  onChange={e => setBidLimits(prev => ({ ...prev, lnd: parseInt(e.target.value) || 0 }))}
+                  className="w-16 bg-white/4 border border-primary/20 rounded-lg py-1.5 px-2 text-center text-foreground text-sm font-mono font-bold outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-transparent text-muted-foreground border border-white/15 hover:bg-white/5 hover:border-white/25"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export function MemberModal({ member, onClose, onUpdateMember }: MemberModalProps) {
+  const [activeTab, setActiveTab] = useState<'character' | 'screenshots' | 'dkp' | 'loot'>('character')
+  const [showEditRole, setShowEditRole] = useState(false)
+  const [localMember, setLocalMember] = useState(member)
 
   const dkpHistory = [
     { desc: 'Dragon Lair Raid', amount: '+150 DKP', positive: true },
@@ -37,10 +203,32 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
   ]
 
   const lootHistory = [
-    { item: 'Shadowfang Executioner', cost: '680 DKP' },
-    { item: 'Soulreaper Ring', cost: '520 DKP' },
-    { item: 'Bloodmoon Greaves', cost: '290 DKP' },
+    { item: 'Fragment Card x5', cost: '680 DKP' },
+    { item: 'LND Fragment', cost: '520 DKP' },
+    { item: 'Time Space x3', cost: '290 DKP' },
   ]
+
+  const handleScreenshotUpload = (type: keyof MemberScreenshots, url: string) => {
+    const updatedMember = {
+      ...localMember,
+      screenshots: {
+        ...localMember.screenshots,
+        [type]: url
+      }
+    }
+    setLocalMember(updatedMember)
+    onUpdateMember?.(member.id, { screenshots: updatedMember.screenshots })
+  }
+
+  const handleRoleSave = (role: string, bidLimits: MemberBidLimits) => {
+    const updatedMember = {
+      ...localMember,
+      role,
+      bidLimits
+    }
+    setLocalMember(updatedMember)
+    onUpdateMember?.(member.id, { role, bidLimits })
+  }
 
   return (
     <div 
@@ -51,16 +239,16 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
         {/* Header */}
         <div className="p-6 px-7 border-b border-primary/15 flex items-center gap-4 sticky top-0 bg-[#0d1120] z-10">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 border-2 border-primary/50 flex items-center justify-center text-[32px]">
-            {member.class.icon}
+            {localMember.class.icon}
           </div>
           <div>
-            <h2 className="font-serif text-[22px] font-bold text-foreground">{member.name}</h2>
+            <h2 className="font-serif text-[22px] font-bold text-foreground">{localMember.name}</h2>
             <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
-              <span className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-md text-[11px] font-bold tracking-wide ${roleColors[member.role]}`}>
-                {roleIcons[member.role]} {member.role}
+              <span className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-md text-[11px] font-bold tracking-wide ${roleColors[localMember.role]}`}>
+                {roleIcons[localMember.role]} {localMember.role}
               </span>
-              <StatusBadge status={member.status} />
-              <span className="font-mono text-[13px] font-bold text-gold">{member.dkp.toLocaleString()} DKP</span>
+              <StatusBadge status={localMember.status} />
+              <span className="font-mono text-[13px] font-bold text-gold">{localMember.dkp.toLocaleString()} DKP</span>
             </div>
           </div>
           <button 
@@ -73,14 +261,14 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
 
         {/* Tabs */}
         <div className="p-7">
-          <div className="flex gap-1 mb-6 bg-white/3 rounded-xl p-1">
-            {(['character', 'dkp', 'loot'] as const).map(tab => (
+          <div className="flex gap-1 mb-6 bg-white/3 rounded-xl p-1 overflow-x-auto">
+            {(['character', 'screenshots', 'dkp', 'loot'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2 px-4 text-center rounded-lg cursor-pointer text-xs font-bold tracking-wide transition-all duration-200 capitalize ${activeTab === tab ? 'bg-primary/25 text-primary-light' : 'text-muted-foreground/70 hover:bg-white/5 hover:text-muted-foreground'}`}
+                className={`flex-1 py-2 px-3 text-center rounded-lg cursor-pointer text-xs font-bold tracking-wide transition-all duration-200 capitalize whitespace-nowrap ${activeTab === tab ? 'bg-primary/25 text-primary-light' : 'text-muted-foreground/70 hover:bg-white/5 hover:text-muted-foreground'}`}
               >
-                {tab === 'character' ? '📋 Character' : tab === 'dkp' ? '💎 DKP History' : '⚡ Loot History'}
+                {tab === 'character' ? '📋 Character' : tab === 'screenshots' ? '📷 Screenshots' : tab === 'dkp' ? '💎 DKP History' : '⚡ Loot History'}
               </button>
             ))}
           </div>
@@ -90,39 +278,74 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
             <div className="grid grid-cols-2 gap-4 max-[500px]:grid-cols-1 animate-in fade-in duration-200">
               <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
                 <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">Class</div>
-                <div className="text-sm font-bold text-foreground">{member.class.icon} {member.class.name}</div>
+                <div className="text-sm font-bold text-foreground">{localMember.class.icon} {localMember.class.name}</div>
               </div>
               <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
                 <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">Guild Role</div>
-                <div className="text-sm font-bold text-foreground">{member.role}</div>
+                <div className="text-sm font-bold text-foreground">{localMember.role}</div>
               </div>
               <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
                 <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">Gear Score</div>
-                <div className="font-mono text-[22px] font-bold text-cyan">{member.gs}</div>
+                <div className="font-mono text-[22px] font-bold text-cyan">{localMember.gs}</div>
               </div>
               <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
                 <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">Current DKP</div>
-                <div className="text-sm font-bold text-foreground">{member.dkp.toLocaleString()} DKP</div>
+                <div className="text-sm font-bold text-foreground">{localMember.dkp.toLocaleString()} DKP</div>
               </div>
               <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
                 <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">Attendance Rate</div>
-                <div className="text-sm font-bold text-foreground">{member.att}%</div>
+                <div className="text-sm font-bold text-foreground">{localMember.att}%</div>
               </div>
               <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
                 <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">Discord</div>
-                <div className="text-sm font-bold text-foreground">{member.discord}</div>
+                <div className="text-sm font-bold text-foreground">{localMember.discord}</div>
               </div>
               <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
                 <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">Joined</div>
-                <div className="text-sm font-bold text-foreground">{member.joinDate}</div>
+                <div className="text-sm font-bold text-foreground">{localMember.joinDate}</div>
               </div>
               <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
                 <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">Last Online</div>
-                <div className="text-sm font-bold text-foreground">{member.lastOnline}</div>
+                <div className="text-sm font-bold text-foreground">{localMember.lastOnline}</div>
               </div>
-              <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5 col-span-2 max-[500px]:col-span-1">
+              <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
                 <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">Total Raids</div>
-                <div className="text-sm font-bold text-foreground">{member.totalRaids}</div>
+                <div className="text-sm font-bold text-foreground">{localMember.totalRaids}</div>
+              </div>
+              <div className="bg-white/3 border border-primary/10 rounded-xl p-3.5">
+                <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-wide mb-1">Bid Limits</div>
+                <div className="text-xs text-foreground flex gap-2 flex-wrap">
+                  <span className="bg-primary/15 px-2 py-0.5 rounded">FC: {localMember.bidLimits?.fragmentCard ?? 2}</span>
+                  <span className="bg-primary/15 px-2 py-0.5 rounded">TS: {localMember.bidLimits?.timespace ?? 2}</span>
+                  <span className="bg-primary/15 px-2 py-0.5 rounded">LND: {localMember.bidLimits?.lnd ?? 2}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Screenshots Tab */}
+          {activeTab === 'screenshots' && (
+            <div className="animate-in fade-in duration-200">
+              <p className="text-xs text-muted-foreground mb-4">Upload screenshots to verify your character stats. These help officers verify your progression.</p>
+              <div className="grid grid-cols-3 gap-4 max-[600px]:grid-cols-1">
+                <ScreenshotUpload
+                  label="Gearscore"
+                  description="Screenshot showing your GS number"
+                  imageUrl={localMember.screenshots?.gearscore}
+                  onUpload={(url) => handleScreenshotUpload('gearscore', url)}
+                />
+                <ScreenshotUpload
+                  label="Feather (12 Tabs)"
+                  description="All 12 feather tabs"
+                  imageUrl={localMember.screenshots?.feather}
+                  onUpload={(url) => handleScreenshotUpload('feather', url)}
+                />
+                <ScreenshotUpload
+                  label="Medal"
+                  description="Your medal collection"
+                  imageUrl={localMember.screenshots?.medal}
+                  onUpload={(url) => handleScreenshotUpload('medal', url)}
+                />
               </div>
             </div>
           )}
@@ -132,7 +355,7 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
             <div className="flex flex-col gap-2 animate-in fade-in duration-200">
               {dkpHistory.map((item, i) => (
                 <div key={i} className="flex items-center justify-between p-2.5 px-3.5 rounded-lg bg-white/2 border border-primary/8">
-                  <div className="text-[13px] text-muted-foreground"><b className="text-foreground">{member.name}</b> — {item.desc}</div>
+                  <div className="text-[13px] text-muted-foreground"><b className="text-foreground">{localMember.name}</b> — {item.desc}</div>
                   <div className={`font-mono text-[13px] font-bold ${item.positive ? 'text-accent' : 'text-destructive'}`}>{item.amount}</div>
                 </div>
               ))}
@@ -152,11 +375,14 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
           )}
 
           {/* Actions */}
-          <div className="flex gap-2 mt-6">
+          <div className="flex gap-2 mt-6 flex-wrap">
             <button className="inline-flex items-center gap-2 py-2 px-3.5 rounded-xl border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]">
               💎 Add DKP
             </button>
-            <button className="inline-flex items-center gap-2 py-2 px-3.5 rounded-xl cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary">
+            <button 
+              onClick={() => setShowEditRole(true)}
+              className="inline-flex items-center gap-2 py-2 px-3.5 rounded-xl cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary"
+            >
               ✏ Edit Role
             </button>
             <button className="inline-flex items-center gap-2 py-2 px-3.5 rounded-xl cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-destructive to-red-700 text-white hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(239,68,68,0.4)]">
@@ -165,6 +391,13 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
           </div>
         </div>
       </div>
+
+      <EditRoleModal 
+        member={localMember}
+        isOpen={showEditRole}
+        onClose={() => setShowEditRole(false)}
+        onSave={handleRoleSave}
+      />
     </div>
   )
 }

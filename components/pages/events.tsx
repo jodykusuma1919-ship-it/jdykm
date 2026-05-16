@@ -1,14 +1,23 @@
 'use client'
 
 import type { Page } from '@/app/page'
-import { guildEvents } from '@/lib/data'
+import { defaultGuildEvents } from '@/lib/data'
+import type { GuildEvent } from '@/lib/data'
 import { useState } from 'react'
 
 interface EventsPageProps {
   onNavigate: (page: Page) => void
 }
 
-function EventRow({ event }: { event: typeof guildEvents[0] }) {
+function EventRow({ 
+  event, 
+  onRecordAttendance,
+  currentUserAttended
+}: { 
+  event: GuildEvent
+  onRecordAttendance: (eventId: number) => void
+  currentUserAttended: boolean
+}) {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   
   const badgeStyles: Record<string, string> = {
@@ -37,21 +46,38 @@ function EventRow({ event }: { event: typeof guildEvents[0] }) {
           </div>
         )}
       </div>
-      <div className="flex gap-1.5 shrink-0 items-center">
+      <div className="flex gap-1.5 shrink-0 items-center flex-wrap">
         <span className="text-[11px] text-muted-foreground/70 whitespace-nowrap">
           <span className="text-accent font-bold">{event.rsvp.confirmed}</span>/{event.rsvp.total}
         </span>
-        <button className="inline-flex items-center gap-2 py-1.5 px-3 rounded-lg border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-accent to-green-600 text-white shadow-[0_4px_15px_rgba(34,197,94,0.25)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(34,197,94,0.4)]">
-          ✓ RSVP
-        </button>
+        {currentUserAttended ? (
+          <span className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-bold bg-accent/15 text-accent border border-accent/30">
+            ✓ Attended
+          </span>
+        ) : (
+          <button 
+            onClick={() => onRecordAttendance(event.id)}
+            className="inline-flex items-center gap-2 py-1.5 px-3 rounded-lg border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-accent to-green-600 text-white shadow-[0_4px_15px_rgba(34,197,94,0.25)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(34,197,94,0.4)]"
+          >
+            ✓ Record Attendance
+          </button>
+        )}
       </div>
     </div>
   )
 }
 
-function ScheduleEventModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function ScheduleEventModal({ 
+  isOpen, 
+  onClose,
+  onSchedule 
+}: { 
+  isOpen: boolean
+  onClose: () => void
+  onSchedule: (event: GuildEvent) => void
+}) {
   const [eventName, setEventName] = useState('')
-  const [eventType, setEventType] = useState('RAID')
+  const [eventType, setEventType] = useState<'RAID' | 'PVP' | 'MEETING' | 'OTHER'>('RAID')
   const [eventDate, setEventDate] = useState('')
   const [eventTime, setEventTime] = useState('')
   const [eventDetails, setEventDetails] = useState('')
@@ -61,7 +87,21 @@ function ScheduleEventModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would add the event scheduling logic
+    
+    const [year, month, day] = eventDate.split('-').map(Number)
+    const newEvent: GuildEvent = {
+      id: Date.now(),
+      name: eventName,
+      type: eventType,
+      date: new Date(year, month - 1, day),
+      time: eventTime,
+      details: eventDetails || 'No details provided',
+      rsvp: { confirmed: 0, total: 25 },
+      dkpReward: parseInt(dkpReward) || 0,
+      attendees: [],
+    }
+    
+    onSchedule(newEvent)
     onClose()
     setEventName('')
     setEventType('RAID')
@@ -98,7 +138,7 @@ function ScheduleEventModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             <label className="block text-xs font-bold text-muted-foreground mb-1.5">Event Type</label>
             <select
               value={eventType}
-              onChange={e => setEventType(e.target.value)}
+              onChange={e => setEventType(e.target.value as 'RAID' | 'PVP' | 'MEETING' | 'OTHER')}
               className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
             >
               <option value="RAID">Raid</option>
@@ -171,15 +211,59 @@ function ScheduleEventModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   )
 }
 
+function DkpAwardedToast({ show, dkpAmount }: { show: boolean; dkpAmount: number }) {
+  if (!show) return null
+  
+  return (
+    <div className="fixed bottom-6 right-6 bg-accent/90 text-white py-3 px-5 rounded-xl shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300 z-50">
+      <span className="text-xl">💎</span>
+      <div>
+        <div className="font-bold text-sm">Attendance Recorded!</div>
+        <div className="text-xs opacity-90">+{dkpAmount} DKP added to your account</div>
+      </div>
+    </div>
+  )
+}
+
 export function EventsPage({ onNavigate }: EventsPageProps) {
   const [filter, setFilter] = useState('')
   const [showScheduleEvent, setShowScheduleEvent] = useState(false)
+  const [events, setEvents] = useState<GuildEvent[]>(defaultGuildEvents)
+  const [attendedEvents, setAttendedEvents] = useState<number[]>([])
+  const [showDkpToast, setShowDkpToast] = useState(false)
+  const [lastDkpReward, setLastDkpReward] = useState(0)
   
   const filteredEvents = filter 
-    ? guildEvents.filter(e => e.type === filter)
-    : guildEvents
+    ? events.filter(e => e.type === filter)
+    : events
 
-  const totalDkp = guildEvents.reduce((sum, e) => sum + e.dkpReward, 0)
+  const totalDkp = events.reduce((sum, e) => sum + e.dkpReward, 0)
+
+  const handleScheduleEvent = (newEvent: GuildEvent) => {
+    setEvents(prev => [newEvent, ...prev].sort((a, b) => a.date.getTime() - b.date.getTime()))
+  }
+
+  const handleRecordAttendance = (eventId: number) => {
+    const event = events.find(e => e.id === eventId)
+    if (!event) return
+
+    // Mark as attended
+    setAttendedEvents(prev => [...prev, eventId])
+    
+    // Update event RSVP
+    setEvents(prev => prev.map(e => 
+      e.id === eventId 
+        ? { ...e, rsvp: { ...e.rsvp, confirmed: e.rsvp.confirmed + 1 } }
+        : e
+    ))
+
+    // Show DKP toast
+    if (event.dkpReward > 0) {
+      setLastDkpReward(event.dkpReward)
+      setShowDkpToast(true)
+      setTimeout(() => setShowDkpToast(false), 4000)
+    }
+  }
 
   const eventHistory = [
     { icon: '⚔', type: 'RAID COMPLETE', text: '<b>Dragon Lair Heroic</b> — Cleared 3h24m · <span class="gold">14 items</span>', time: 'May 10' },
@@ -212,7 +296,7 @@ export function EventsPage({ onNavigate }: EventsPageProps) {
         <span className="text-lg">💎</span>
         <div>
           <div className="text-[13px] font-bold text-gold">Auto DKP on Attendance</div>
-          <div className="text-xs text-muted-foreground">Each member who clicks <b className="text-foreground">Mark Attendance</b> on an event will automatically receive <b className="text-foreground">100</b> DKP.</div>
+          <div className="text-xs text-muted-foreground">Each member who clicks <b className="text-foreground">Record Attendance</b> on an event will automatically receive the event&apos;s DKP reward.</div>
         </div>
         <button onClick={() => onNavigate('settings')} className="ml-auto inline-flex items-center gap-2 py-1.5 px-3 rounded-lg cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-gold border border-gold/40 hover:bg-gold/15 hover:border-gold">
           ⚙ Change Amount
@@ -224,7 +308,7 @@ export function EventsPage({ onNavigate }: EventsPageProps) {
         {/* Events List */}
         <div className="bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden">
           <div className="p-4 px-6 border-b border-primary/10 flex items-center justify-between">
-            <div className="text-sm font-bold text-foreground">📆 Upcoming Events</div>
+            <div className="text-sm font-bold text-foreground">📆 Upcoming Events ({filteredEvents.length})</div>
             <select 
               value={filter} 
               onChange={e => setFilter(e.target.value)}
@@ -237,9 +321,22 @@ export function EventsPage({ onNavigate }: EventsPageProps) {
               <option value="OTHER">Other</option>
             </select>
           </div>
-          {filteredEvents.map(event => (
-            <EventRow key={event.id} event={event} />
-          ))}
+          {filteredEvents.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <div className="text-3xl mb-2">📅</div>
+              <div className="text-sm">No events scheduled</div>
+              <div className="text-xs mt-1">Click &quot;+ Schedule Event&quot; to create one</div>
+            </div>
+          ) : (
+            filteredEvents.map(event => (
+              <EventRow 
+                key={event.id} 
+                event={event} 
+                onRecordAttendance={handleRecordAttendance}
+                currentUserAttended={attendedEvents.includes(event.id)}
+              />
+            ))
+          )}
         </div>
 
         {/* Sidebar */}
@@ -248,7 +345,7 @@ export function EventsPage({ onNavigate }: EventsPageProps) {
           <div className="grid grid-cols-2 gap-2.5">
             <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-3.5">
               <div className="text-xl mb-1">📅</div>
-              <div className="font-mono text-xl font-bold text-foreground">{guildEvents.length}</div>
+              <div className="font-mono text-xl font-bold text-foreground">{events.length}</div>
               <div className="text-[11px] text-muted-foreground/70">Upcoming</div>
             </div>
             <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-3.5">
@@ -284,7 +381,13 @@ export function EventsPage({ onNavigate }: EventsPageProps) {
         </div>
       </div>
 
-      <ScheduleEventModal isOpen={showScheduleEvent} onClose={() => setShowScheduleEvent(false)} />
+      <ScheduleEventModal 
+        isOpen={showScheduleEvent} 
+        onClose={() => setShowScheduleEvent(false)} 
+        onSchedule={handleScheduleEvent}
+      />
+      
+      <DkpAwardedToast show={showDkpToast} dkpAmount={lastDkpReward} />
     </div>
   )
 }
