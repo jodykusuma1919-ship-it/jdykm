@@ -1,7 +1,7 @@
 'use client'
 
 import type { Page } from '@/app/page'
-import { activityFeed, guildEvents } from '@/lib/data'
+import { activityFeed, defaultGuildEvents } from '@/lib/data'
 
 interface DashboardPageProps {
   onNavigate: (page: Page) => void
@@ -148,7 +148,7 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
           <div className="p-4 px-6 border-b border-primary/10 text-sm font-bold text-foreground">
             📅 Upcoming Events
           </div>
-          {guildEvents.slice(0, 4).map((event) => (
+          {defaultGuildEvents.slice(0, 4).map((event) => (
             <EventCard 
               key={event.id}
               day={event.date.getDate()}
