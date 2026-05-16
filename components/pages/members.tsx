@@ -109,7 +109,7 @@ function AddMemberModal({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: 
                 value={gs}
                 onChange={e => setGs(parseInt(e.target.value) || 0)}
                 min={0}
-                max={999}
+                max={1000000}
                 className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans font-mono outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
               />
             </div>
