@@ -222,7 +222,7 @@ export function LootPage({ onNavigate }: LootPageProps) {
         </div>
       </div>
 
-      {{/* Guild Loot Inventory Remaining */}
+      {/* Guild Loot Inventory Remaining */}
       <div className="grid grid-cols-3 gap-4 mb-5 max-md:grid-cols-1">
         <div className="bg-card backdrop-blur-xl border border-purple-500/25 rounded-2xl p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-[25px] opacity-30 pointer-events-none bg-purple-500" />
