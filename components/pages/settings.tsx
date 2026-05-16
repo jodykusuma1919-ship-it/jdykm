@@ -82,7 +82,7 @@ function SettingToggle({ label, description, defaultOn, disabled }: { label: str
   )
 }
 
-// Stepper Component with +/- buttons only (no keyboard input)
+// Stepper Component with +/- buttons and keyboard input
 function StepperInput({ 
   value, 
   onChange, 
@@ -100,29 +100,56 @@ function StepperInput({
   disabled?: boolean
   colorClass?: string
 }) {
-  const decrement = () => {
+  const decrement = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     if (!disabled && value > min) {
       onChange(Math.max(min, value - step))
     }
   }
 
-  const increment = () => {
+  const increment = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     if (!disabled && value < max) {
       onChange(Math.min(max, value + step))
     }
   }
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseInt(e.target.value, 10)
+    if (!isNaN(newValue)) {
+      onChange(Math.min(max, Math.max(min, newValue)))
+    }
+  }
+
+  const handleInputClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
       <button 
+        type="button"
         onClick={decrement}
         disabled={disabled || value <= min}
         className={`w-[36px] h-[36px] rounded-lg border ${colorClass} text-foreground text-xl font-bold flex items-center justify-center transition-all duration-150 leading-none ${disabled || value <= min ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
       >
         −
       </button>
-      <span className="font-mono text-xl font-bold text-primary-light min-w-10 text-center">{value}</span>
+      <input
+        type="number"
+        value={value}
+        onChange={handleInputChange}
+        onClick={handleInputClick}
+        disabled={disabled}
+        min={min}
+        max={max}
+        className="font-mono text-xl font-bold text-primary-light w-14 text-center bg-transparent border border-primary/20 rounded-lg py-1 focus:outline-none focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+      />
       <button 
+        type="button"
         onClick={increment}
         disabled={disabled || value >= max}
         className={`w-[36px] h-[36px] rounded-lg border ${colorClass} text-foreground text-xl font-bold flex items-center justify-center transition-all duration-150 leading-none ${disabled || value >= max ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
