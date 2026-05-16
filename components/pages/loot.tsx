@@ -5,6 +5,7 @@ import type { Page } from '@/app/page'
 import { auctions } from '@/lib/data'
 import { canManageLoot } from '@/lib/roles'
 import type { GuildRole } from '@/lib/roles'
+import { useGuildSettings } from '@/contexts/guild-settings-context'
 
 interface LootPageProps {
   onNavigate: (page: Page) => void
@@ -22,7 +23,7 @@ const guildLootRemaining = {
   lnd: { current: 83, total: 150 },
 }
 
-function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: () => void }) {
+function AuctionCard({ auction, onBid, bidLimits }: { auction: typeof auctions[0]; onBid: () => void; bidLimits: { fragmentCard: number; timespace: number; lnd: number } }) {
   const [time, setTime] = useState(auction.timeRemaining)
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -42,7 +43,8 @@ function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: (
   const totalPages = Math.ceil(auction.bids.length / BIDS_PER_PAGE)
   const startIndex = (currentPage - 1) * BIDS_PER_PAGE
   const visibleBids = auction.bids.slice(startIndex, startIndex + BIDS_PER_PAGE)
-  const bidsLeft = Math.max(0, (auction.category === 'fragmentCard' ? 40 : 50) - auction.bids.length)
+  const maxBids = bidLimits[auction.category] || 2
+  const bidsLeft = Math.max(0, maxBids - auction.bids.length)
 
   return (
     <div className="bg-card backdrop-blur-xl border border-gold/25 rounded-2xl p-5 relative overflow-hidden">
@@ -296,9 +298,13 @@ type Auction = {
 
 export function LootPage({ onNavigate, userRole }: LootPageProps) {
   const canManage = canManageLoot(userRole)
+  const { settings } = useGuildSettings()
   const [showNewAuction, setShowNewAuction] = useState(false)
   const [showLootHistory, setShowLootHistory] = useState(false)
   const [activeAuctions, setActiveAuctions] = useState<Auction[]>(auctions as Auction[])
+  
+  // Get bid limits from shared settings
+  const bidLimits = settings.bidLimits
   
   // Empty loot history - start fresh
   const lootHistory: { icon: string; type: string; text: string; time: string }[] = []
@@ -386,13 +392,13 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
         </div>
         <div className="flex gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            Fragment Card <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">40</span>
+            Fragment Card <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">{bidLimits.fragmentCard}</span>
           </span>
           <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            Timespace <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">50</span>
+            Timespace <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">{bidLimits.timespace}</span>
           </span>
           <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            LND <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">50</span>
+            LND <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">{bidLimits.lnd}</span>
           </span>
         </div>
         {canManage && (
@@ -420,7 +426,7 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
           </div>
         )}
         {activeAuctions.map(auction => (
-          <AuctionCard key={auction.id} auction={auction} onBid={() => {}} />
+          <AuctionCard key={auction.id} auction={auction} onBid={() => {}} bidLimits={bidLimits} />
         ))}
 
         {/* Loot History Card */}

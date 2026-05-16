@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { canEditAllSettings, canEditBattleSettings, getRoleColor } from '@/lib/roles'
 import type { GuildRole } from '@/lib/roles'
 import type { Page } from '@/app/page'
+import { useGuildSettings } from '@/contexts/guild-settings-context'
 
 interface SettingsPageProps {
   onNavigate?: (page: Page) => void
@@ -133,28 +134,41 @@ function StepperInput({
 }
 
 export function SettingsPage({ onNavigate, userRole }: SettingsPageProps) {
-  const [selectedPreset, setSelectedPreset] = useState('222')
-  const [customValues, setCustomValues] = useState({ fragmentCard: 2, timespace: 2, lnd: 2 })
-  const [lootRewards, setLootRewards] = useState({
-    fragmentCard: { dkpCost: 100, quantity: 3 },
-    timespace: { dkpCost: 150, quantity: 2 },
-    lnd: { dkpCost: 200, quantity: 1 },
-  })
+  const { settings, updateBidLimits, updateLootRewards, updatePreset, saveSettings, isLoading } = useGuildSettings()
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const isFullAdmin = canEditAllSettings(userRole)
   const canEditBattle = canEditBattleSettings(userRole)
+
+  // Local state synced with context
+  const selectedPreset = settings.selectedPreset
+  const customValues = settings.bidLimits
+  const lootRewards = settings.lootRewards
+
+  const setSelectedPreset = (preset: string) => {
+    updatePreset(preset)
+  }
+
+  const setCustomValues = (updater: (prev: typeof customValues) => typeof customValues) => {
+    const newValues = updater(customValues)
+    updateBidLimits(newValues)
+  }
+
+  const setLootRewards = (updater: (prev: typeof lootRewards) => typeof lootRewards) => {
+    const newValues = updater(lootRewards)
+    updateLootRewards(newValues)
+  }
   
   const handleSaveChanges = () => {
     setSaveStatus('saving')
     setTimeout(() => {
-      localStorage.setItem('guildSettings', JSON.stringify({
-        selectedPreset,
-        customValues,
-        lootRewards
-      }))
+      saveSettings()
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus('idle'), 2000)
     }, 500)
+  }
+
+  if (isLoading) {
+    return <div className="animate-pulse text-center py-10 text-muted-foreground">Loading settings...</div>
   }
 
   const presets = [

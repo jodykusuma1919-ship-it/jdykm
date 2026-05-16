@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Rajdhani, Cinzel, Orbitron } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { GuildSettingsProvider } from '@/contexts/guild-settings-context'
 import './globals.css'
 
 const rajdhani = Rajdhani({ 
@@ -34,7 +35,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${rajdhani.variable} ${cinzel.variable} ${orbitron.variable}`}>
       <body className="font-sans antialiased bg-background min-h-screen overflow-x-hidden">
-        {children}
+        <GuildSettingsProvider>
+          {children}
+        </GuildSettingsProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
