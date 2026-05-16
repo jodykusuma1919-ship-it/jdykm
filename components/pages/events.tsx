@@ -268,8 +268,27 @@ export function EventsPage({ onNavigate, userRole }: EventsPageProps) {
 
   const totalDkp = events.reduce((sum, e) => sum + e.dkpReward, 0)
 
-  const handleScheduleEvent = (newEvent: GuildEvent) => {
+  const handleScheduleEvent = async (newEvent: GuildEvent) => {
     setEvents(prev => [newEvent, ...prev].sort((a, b) => a.date.getTime() - b.date.getTime()))
+    
+    // Post to Discord
+    try {
+      await fetch('/api/discord', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newEvent.name,
+          type: newEvent.type,
+          date: newEvent.date.toISOString(),
+          time: newEvent.time,
+          details: newEvent.details,
+          dkpReward: newEvent.dkpReward,
+          maxAttendance: newEvent.rsvp.total,
+        }),
+      })
+    } catch (error) {
+      console.error('Failed to post to Discord:', error)
+    }
   }
 
   const handleRecordAttendance = (eventId: number) => {
