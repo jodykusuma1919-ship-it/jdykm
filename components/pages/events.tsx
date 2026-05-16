@@ -49,8 +49,131 @@ function EventRow({ event }: { event: typeof guildEvents[0] }) {
   )
 }
 
+function ScheduleEventModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [eventName, setEventName] = useState('')
+  const [eventType, setEventType] = useState('RAID')
+  const [eventDate, setEventDate] = useState('')
+  const [eventTime, setEventTime] = useState('')
+  const [eventDetails, setEventDetails] = useState('')
+  const [dkpReward, setDkpReward] = useState('100')
+
+  if (!isOpen) return null
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Here you would add the event scheduling logic
+    onClose()
+    setEventName('')
+    setEventType('RAID')
+    setEventDate('')
+    setEventTime('')
+    setEventDetails('')
+    setDkpReward('100')
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 border-b border-primary/15">
+          <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+            📅 Schedule Event
+          </h2>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Event Name</label>
+            <input
+              type="text"
+              value={eventName}
+              onChange={e => setEventName(e.target.value)}
+              placeholder="e.g., Dragon Lair Heroic"
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Event Type</label>
+            <select
+              value={eventType}
+              onChange={e => setEventType(e.target.value)}
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+            >
+              <option value="RAID">Raid</option>
+              <option value="PVP">PvP</option>
+              <option value="MEETING">Meeting</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1.5">Date</label>
+              <input
+                type="date"
+                value={eventDate}
+                onChange={e => setEventDate(e.target.value)}
+                className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1.5">Time</label>
+              <input
+                type="time"
+                value={eventTime}
+                onChange={e => setEventTime(e.target.value)}
+                className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Details</label>
+            <input
+              type="text"
+              value={eventDetails}
+              onChange={e => setEventDetails(e.target.value)}
+              placeholder="e.g., Full clear attempt, bring consumables"
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">DKP Reward for Attendance</label>
+            <input
+              type="number"
+              value={dkpReward}
+              onChange={e => setDkpReward(e.target.value)}
+              placeholder="100"
+              min="0"
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
+            />
+          </div>
+          <div className="flex gap-3 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-transparent text-muted-foreground border border-white/15 hover:bg-white/5 hover:border-white/25"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+            >
+              Schedule Event
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export function EventsPage({ onNavigate }: EventsPageProps) {
   const [filter, setFilter] = useState('')
+  const [showScheduleEvent, setShowScheduleEvent] = useState(false)
   
   const filteredEvents = filter 
     ? guildEvents.filter(e => e.type === filter)
@@ -75,7 +198,10 @@ export function EventsPage({ onNavigate }: EventsPageProps) {
           <div className="flex items-center gap-1.5 py-1.5 px-3.5 bg-gold/10 border border-gold/25 rounded-full text-xs font-bold text-gold">
             💎 Att. DKP: <span>100</span> pts
           </div>
-          <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]">
+          <button 
+            onClick={() => setShowScheduleEvent(true)}
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+          >
             + Schedule Event
           </button>
         </div>
@@ -157,6 +283,8 @@ export function EventsPage({ onNavigate }: EventsPageProps) {
           </div>
         </div>
       </div>
+
+      <ScheduleEventModal isOpen={showScheduleEvent} onClose={() => setShowScheduleEvent(false)} />
     </div>
   )
 }

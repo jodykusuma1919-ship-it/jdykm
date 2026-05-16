@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Page } from '@/app/page'
-import { auctions } from '@/lib/data'
+import { auctions, allMembers } from '@/lib/data'
 
 interface LootPageProps {
   onNavigate: (page: Page) => void
@@ -36,7 +36,7 @@ function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: (
       <div className="flex items-center gap-2 bg-primary/7 border border-primary/15 rounded-lg p-2 px-3 mb-2.5 flex-wrap">
         <span className="text-[11px] text-muted-foreground/70 font-semibold mr-1 whitespace-nowrap">Bids:</span>
         <div className="flex items-center gap-1">
-          {[1, 2, 3].map((_, i) => (
+          {[1, 2].map((_, i) => (
             <div 
               key={i} 
               className={`w-[22px] h-[22px] rounded-md border flex items-center justify-center text-[11px] transition-all duration-200 ${i === 0 ? 'bg-primary border-primary text-white font-bold' : 'bg-primary/8 border-primary/35 text-muted-foreground/70'}`}
@@ -46,7 +46,7 @@ function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: (
           ))}
         </div>
         <span className="ml-auto text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded uppercase bg-accent/12 text-accent border border-accent/25">
-          2 LEFT
+          1 LEFT
         </span>
       </div>
 
@@ -78,11 +78,98 @@ function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: (
   )
 }
 
+function NewAuctionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [itemName, setItemName] = useState('')
+  const [itemType, setItemType] = useState('Fragment Card')
+  const [duration, setDuration] = useState('5')
+
+  if (!isOpen) return null
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Here you would add the auction logic
+    onClose()
+    setItemName('')
+    setItemType('Fragment Card')
+    setDuration('5')
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 border-b border-primary/15">
+          <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+            ⚡ New Auction
+          </h2>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Item Name</label>
+            <input
+              type="text"
+              value={itemName}
+              onChange={e => setItemName(e.target.value)}
+              placeholder="Enter item name..."
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Item Type</label>
+            <select
+              value={itemType}
+              onChange={e => setItemType(e.target.value)}
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+            >
+              <option value="Fragment Card">Fragment Card</option>
+              <option value="Timespace">Timespace</option>
+              <option value="LND">LND</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Duration (minutes)</label>
+            <select
+              value={duration}
+              onChange={e => setDuration(e.target.value)}
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+            >
+              <option value="2">2 minutes</option>
+              <option value="5">5 minutes</option>
+              <option value="10">10 minutes</option>
+              <option value="15">15 minutes</option>
+            </select>
+          </div>
+          <div className="flex gap-3 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-transparent text-muted-foreground border border-white/15 hover:bg-white/5 hover:border-white/25"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+            >
+              Create Auction
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export function LootPage({ onNavigate }: LootPageProps) {
+  const [showNewAuction, setShowNewAuction] = useState(false)
+  
   const lootHistory = [
-    { icon: '🗡', type: 'AUCTION WIN', text: '<b>Karath</b> won <span class="hl">Bloodmoon Greaves</span> for <span class="gold">290 DKP</span>', time: 'Yesterday' },
+    { icon: '🗡', type: 'AUCTION WIN', text: '<b>Karath</b> won <span class="hl">Fragment Card ×3</span> for <span class="gold">290 DKP</span>', time: 'Yesterday' },
     { icon: '🧝', type: 'ROLL WIN', text: '<b>Lyrath</b> won <span class="hl">Timespace Fragment ×3</span> with roll <span class="green">97</span>', time: '2 days ago' },
-    { icon: '⚔', type: 'AUCTION WIN', text: '<b>Valdris</b> won <span class="hl">Soulreaper Ring</span> for <span class="gold">520 DKP</span>', time: '3 days ago' },
+    { icon: '⚔', type: 'AUCTION WIN', text: '<b>Valdris</b> won <span class="hl">LND Piece</span> for <span class="gold">520 DKP</span>', time: '3 days ago' },
   ]
 
   return (
@@ -95,7 +182,10 @@ export function LootPage({ onNavigate }: LootPageProps) {
           <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary">
             📜 Loot History
           </button>
-          <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]">
+          <button 
+            onClick={() => setShowNewAuction(true)}
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+          >
             + New Auction
           </button>
         </div>
@@ -108,13 +198,13 @@ export function LootPage({ onNavigate }: LootPageProps) {
         </div>
         <div className="flex gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            Main <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">3</span>
+            Fragment Card <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">2</span>
           </span>
           <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            Fragment <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">3</span>
+            Timespace <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">2</span>
           </span>
           <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold bg-primary/18 border border-primary/30 text-primary-light">
-            Timespace <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">3</span>
+            LND <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">2</span>
           </span>
         </div>
         <button onClick={() => onNavigate('settings')} className="ml-auto text-xs text-primary-light cursor-pointer underline whitespace-nowrap">
@@ -158,6 +248,8 @@ export function LootPage({ onNavigate }: LootPageProps) {
           ))}
         </div>
       </div>
+
+      <NewAuctionModal isOpen={showNewAuction} onClose={() => setShowNewAuction(false)} />
     </div>
   )
 }

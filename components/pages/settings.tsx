@@ -7,7 +7,7 @@ interface PresetCardProps {
   icon: string
   label: string
   description: string
-  values: { main: number; fragment: number; timespace: number }
+  values: { fragmentCard: number; timespace: number; lnd: number }
   active: boolean
   onSelect: () => void
 }
@@ -34,16 +34,16 @@ function PresetCard({ icon, label, description, values, active, onSelect }: Pres
       <div className="text-[11px] text-muted-foreground/70 font-semibold tracking-[1px] uppercase mb-3">{description}</div>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Main Weapons</span>
-          <span className={`font-bold font-mono text-[11px] ${active ? 'text-primary-light' : 'text-foreground'}`}>{values.main}</span>
-        </div>
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Fragments</span>
-          <span className={`font-bold font-mono text-[11px] ${active ? 'text-primary-light' : 'text-foreground'}`}>{values.fragment}</span>
+          <span className="text-muted-foreground">Fragment Card</span>
+          <span className={`font-bold font-mono text-[11px] ${active ? 'text-primary-light' : 'text-foreground'}`}>{values.fragmentCard}</span>
         </div>
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">Timespace</span>
           <span className={`font-bold font-mono text-[11px] ${active ? 'text-primary-light' : 'text-foreground'}`}>{values.timespace}</span>
+        </div>
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">LND</span>
+          <span className={`font-bold font-mono text-[11px] ${active ? 'text-primary-light' : 'text-foreground'}`}>{values.lnd}</span>
         </div>
       </div>
     </button>
@@ -70,21 +70,30 @@ function SettingToggle({ label, description, defaultOn }: { label: string; descr
 }
 
 export function SettingsPage() {
-  const [selectedPreset, setSelectedPreset] = useState('333')
-  const [customValues, setCustomValues] = useState({ main: 3, fragment: 3, timespace: 3 })
+  const [selectedPreset, setSelectedPreset] = useState('222')
+  const [customValues, setCustomValues] = useState({ fragmentCard: 2, timespace: 2, lnd: 2 })
 
   const presets = [
-    { id: '333', icon: '⚔', label: '3-3-3', description: 'Balanced', values: { main: 3, fragment: 3, timespace: 3 } },
-    { id: '222', icon: '🛡', label: '2-2-2', description: 'Conservative', values: { main: 2, fragment: 2, timespace: 2 } },
-    { id: '111', icon: '🎯', label: '1-1-1', description: 'Strict', values: { main: 1, fragment: 1, timespace: 1 } },
+    { id: '333', icon: '⚔', label: '3-3-3', description: 'Balanced', values: { fragmentCard: 3, timespace: 3, lnd: 3 } },
+    { id: '222', icon: '🛡', label: '2-2-2', description: 'Default', values: { fragmentCard: 2, timespace: 2, lnd: 2 } },
+    { id: '111', icon: '🎯', label: '1-1-1', description: 'Strict', values: { fragmentCard: 1, timespace: 1, lnd: 1 } },
   ]
 
-  const stepValue = (key: 'main' | 'fragment' | 'timespace', dir: number) => {
+  const stepValue = (key: 'fragmentCard' | 'timespace' | 'lnd', dir: number) => {
     setSelectedPreset('custom')
     setCustomValues(v => ({
       ...v,
       [key]: Math.max(0, Math.min(9, v[key] + dir))
     }))
+  }
+
+  const getDisplayLabel = (key: string) => {
+    switch (key) {
+      case 'fragmentCard': return 'Fragment Card'
+      case 'timespace': return 'Timespace'
+      case 'lnd': return 'LND'
+      default: return key
+    }
   }
 
   return (
@@ -144,9 +153,9 @@ export function SettingsPage() {
         {/* Custom Values */}
         {selectedPreset === 'custom' && (
           <div className="grid grid-cols-3 gap-4 p-4 bg-primary/5 border border-primary/20 rounded-xl max-sm:grid-cols-1">
-            {(['main', 'fragment', 'timespace'] as const).map(key => (
+            {(['fragmentCard', 'timespace', 'lnd'] as const).map(key => (
               <div key={key} className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground capitalize">{key}</span>
+                <span className="text-sm text-muted-foreground">{getDisplayLabel(key)}</span>
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => stepValue(key, -1)}
