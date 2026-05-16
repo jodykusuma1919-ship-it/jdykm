@@ -22,7 +22,19 @@ const guildLootRemaining = {
   lnd: { current: 83, total: 150 },
 }
 
-function AuctionCard({ auction, onBid, bidLimits }: { auction: typeof auctions[0]; onBid: () => void; bidLimits: { fragmentCard: number; timespace: number; lnd: number } }) {
+function AuctionCard({ 
+  auction, 
+  onBid, 
+  bidLimits,
+  userBidsCount,
+  currentUser 
+}: { 
+  auction: typeof auctions[0]
+  onBid: (auctionId: number) => void
+  bidLimits: { fragmentCard: number; timespace: number; lnd: number }
+  userBidsCount: { fragmentCard: number; timespace: number; lnd: number }
+  currentUser: string
+}) {
   const [time, setTime] = useState(auction.timeRemaining)
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -39,11 +51,13 @@ function AuctionCard({ auction, onBid, bidLimits }: { auction: typeof auctions[0
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   }
 
-  const totalPages = Math.ceil(auction.bids.length / BIDS_PER_PAGE)
+  const totalPages = Math.ceil(auction.bids.length / BIDS_PER_PAGE) || 1
   const startIndex = (currentPage - 1) * BIDS_PER_PAGE
   const visibleBids = auction.bids.slice(startIndex, startIndex + BIDS_PER_PAGE)
   const maxBids = bidLimits[auction.category] || 2
-  const bidsLeft = Math.max(0, maxBids - auction.bids.length)
+  const userBidCount = userBidsCount[auction.category] || 0
+  const bidsLeft = Math.max(0, maxBids - userBidCount)
+  const canBid = bidsLeft > 0 && time > 0
 
   return (
     <div className="bg-card backdrop-blur-xl border border-gold/25 rounded-2xl p-5 relative overflow-hidden">
@@ -103,10 +117,15 @@ function AuctionCard({ auction, onBid, bidLimits }: { auction: typeof auctions[0
           <span className="font-mono text-gold font-bold">{formatTime(time)}</span> remaining
         </div>
         <button 
-          onClick={onBid}
-          className="inline-flex items-center gap-2 py-1.5 px-3.5 rounded-lg border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+          onClick={() => canBid && onBid(auction.id)}
+          disabled={!canBid}
+          className={`inline-flex items-center gap-2 py-1.5 px-3.5 rounded-lg border-none font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap ${
+            canBid 
+              ? 'cursor-pointer bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]'
+              : 'cursor-not-allowed bg-gray-600/50 text-gray-400 opacity-60'
+          }`}
         >
-          Place Bid
+          {!canBid && bidsLeft === 0 ? 'Max Bids Reached' : time === 0 ? 'Auction Ended' : 'Place Bid'}
         </button>
       </div>
     </div>
@@ -167,7 +186,17 @@ function LootHistoryModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   )
 }
 
-function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; onClose: () => void; onAddAuction: (auction: { id: number; name: string; icon: string; type: string; ilvl: number; category: 'fragmentCard' | 'timespace' | 'lnd'; bids: { user: string; icon: string; dkp: number; time: string }[]; timeRemaining: number }) => void }) {
+function NewAuctionModal({ 
+  isOpen, 
+  onClose, 
+  onAddAuction,
+  lootRemaining 
+}: { 
+  isOpen: boolean
+  onClose: () => void
+  onAddAuction: (auction: { id: number; name: string; icon: string; type: string; ilvl: number; category: 'fragmentCard' | 'timespace' | 'lnd'; bids: { user: string; icon: string; dkp: number; time: string }[]; timeRemaining: number }) => void
+  lootRemaining: { fragmentCard: { current: number; total: number }; timespace: { current: number; total: number }; lnd: { current: number; total: number } }
+}) {
   const [itemName, setItemName] = useState('')
   const [itemType, setItemType] = useState('Fragment Card')
   const [duration, setDuration] = useState('60')
@@ -189,6 +218,15 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
       case 'Timespace': return 'timespace'
       case 'LND': return 'lnd'
       default: return 'fragmentCard'
+    }
+  }
+
+  const getRemainingForType = (type: string) => {
+    switch (type) {
+      case 'Fragment Card': return lootRemaining.fragmentCard.current
+      case 'Timespace': return lootRemaining.timespace.current
+      case 'LND': return lootRemaining.lnd.current
+      default: return 0
     }
   }
 
@@ -225,6 +263,31 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
           </h2>
         </div>
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+          {/* Guild Loot Remaining Summary */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 mb-2">
+            <div className="text-[11px] font-bold text-muted-foreground mb-2">Guild Loot Remaining:</div>
+            <div className="flex gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">🃏</span>
+                <span className={`text-xs font-mono font-bold ${lootRemaining.fragmentCard.current > 0 ? 'text-purple-400' : 'text-destructive'}`}>
+                  {lootRemaining.fragmentCard.current}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">🔮</span>
+                <span className={`text-xs font-mono font-bold ${lootRemaining.timespace.current > 0 ? 'text-cyan-400' : 'text-destructive'}`}>
+                  {lootRemaining.timespace.current}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">⚡</span>
+                <span className={`text-xs font-mono font-bold ${lootRemaining.lnd.current > 0 ? 'text-amber-400' : 'text-destructive'}`}>
+                  {lootRemaining.lnd.current}
+                </span>
+              </div>
+            </div>
+          </div>
+          
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-1.5">Item Name</label>
             <input
@@ -238,15 +301,20 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
           </div>
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-1.5">Item Type</label>
-            <select
-              value={itemType}
-              onChange={e => setItemType(e.target.value)}
-              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
-            >
-              <option value="Fragment Card">Fragment Card</option>
-              <option value="Timespace">Timespace</option>
-              <option value="LND">LND</option>
-            </select>
+            <div className="relative">
+              <select
+                value={itemType}
+                onChange={e => setItemType(e.target.value)}
+                className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+              >
+                <option value="Fragment Card">Fragment Card ({lootRemaining.fragmentCard.current} left)</option>
+                <option value="Timespace">Timespace ({lootRemaining.timespace.current} left)</option>
+                <option value="LND">LND ({lootRemaining.lnd.current} left)</option>
+              </select>
+              {getRemainingForType(itemType) === 0 && (
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] font-bold text-destructive">OUT OF STOCK</div>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-1.5">Duration</label>
@@ -273,7 +341,12 @@ function NewAuctionModal({ isOpen, onClose, onAddAuction }: { isOpen: boolean; o
             </button>
             <button
               type="submit"
-              className="flex-1 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+              disabled={getRemainingForType(itemType) === 0}
+              className={`flex-1 py-2.5 px-4 rounded-xl border-none font-sans text-sm font-bold tracking-wide transition-all duration-200 ${
+                getRemainingForType(itemType) > 0
+                  ? 'cursor-pointer bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]'
+                  : 'cursor-not-allowed bg-gray-600/50 text-gray-400 opacity-60'
+              }`}
             >
               Create Auction
             </button>
@@ -436,6 +509,9 @@ type Auction = {
   timeRemaining: number
 }
 
+// Simulated current user - in production this would come from auth
+const CURRENT_USER = { name: 'Skywalker', icon: '⚔' }
+
 export function LootPage({ onNavigate, userRole }: LootPageProps) {
   const canManage = canManageLoot(userRole)
   const canApproveRequests = ['Admin', 'Guild Master', 'Vice Master'].includes(userRole)
@@ -444,6 +520,15 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
   const [showLootHistory, setShowLootHistory] = useState(false)
   const [activeAuctions, setActiveAuctions] = useState<Auction[]>(auctions as Auction[])
   const [activeTab, setActiveTab] = useState<'auctions' | 'requests' | 'approved'>('auctions')
+  const [showBidModal, setShowBidModal] = useState<number | null>(null)
+  const [bidAmount, setBidAmount] = useState('')
+  
+  // Track user's bid count per category
+  const [userBidsCount, setUserBidsCount] = useState<{ fragmentCard: number; timespace: number; lnd: number }>({
+    fragmentCard: 0,
+    timespace: 0,
+    lnd: 0
+  })
   
   // Get bid limits from shared settings
   const bidLimits = settings.bidLimits
@@ -452,6 +537,47 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
 
   const handleAddAuction = (newAuction: Auction) => {
     setActiveAuctions(prev => [...prev, newAuction])
+  }
+
+  const handlePlaceBid = (auctionId: number) => {
+    setShowBidModal(auctionId)
+    setBidAmount('')
+  }
+
+  const confirmBid = () => {
+    if (!showBidModal || !bidAmount) return
+    
+    const auction = activeAuctions.find(a => a.id === showBidModal)
+    if (!auction) return
+
+    const dkpAmount = parseInt(bidAmount)
+    if (isNaN(dkpAmount) || dkpAmount <= 0) return
+
+    // Add bid to auction
+    const newBid = {
+      user: CURRENT_USER.name,
+      icon: CURRENT_USER.icon,
+      dkp: dkpAmount,
+      time: 'Just now'
+    }
+
+    setActiveAuctions(prev => prev.map(a => {
+      if (a.id === showBidModal) {
+        // Insert bid in sorted order (highest first)
+        const newBids = [...a.bids, newBid].sort((x, y) => y.dkp - x.dkp)
+        return { ...a, bids: newBids }
+      }
+      return a
+    }))
+
+    // Update user's bid count for this category
+    setUserBidsCount(prev => ({
+      ...prev,
+      [auction.category]: prev[auction.category] + 1
+    }))
+
+    setShowBidModal(null)
+    setBidAmount('')
   }
 
   const handleApproveRequest = (requestId: string) => {
@@ -572,6 +698,86 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
         )}
       </div>
 
+      {/* Economy Loot - Who Already Bid */}
+      <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-5 mb-5">
+        <div className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+          <span className="text-lg">📊</span> Economy Loot - Current Bidders
+        </div>
+        <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">
+          {/* Fragment Card Bidders */}
+          <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">🃏</span>
+              <span className="text-xs font-bold text-foreground">Fragment Card</span>
+              <span className="ml-auto text-[10px] font-bold text-purple-400">
+                {activeAuctions.filter(a => a.category === 'fragmentCard').reduce((sum, a) => sum + a.bids.length, 0)} bids
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
+              {activeAuctions.filter(a => a.category === 'fragmentCard').flatMap(a => 
+                a.bids.map((bid, i) => (
+                  <div key={`fc-${a.id}-${i}`} className="flex items-center justify-between text-xs py-1 px-2 bg-purple-500/10 rounded">
+                    <span className="text-foreground/80">{bid.icon} {bid.user}</span>
+                    <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
+                  </div>
+                ))
+              )}
+              {activeAuctions.filter(a => a.category === 'fragmentCard').reduce((sum, a) => sum + a.bids.length, 0) === 0 && (
+                <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bids yet</div>
+              )}
+            </div>
+          </div>
+
+          {/* Timespace Bidders */}
+          <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">🔮</span>
+              <span className="text-xs font-bold text-foreground">Timespace</span>
+              <span className="ml-auto text-[10px] font-bold text-cyan-400">
+                {activeAuctions.filter(a => a.category === 'timespace').reduce((sum, a) => sum + a.bids.length, 0)} bids
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
+              {activeAuctions.filter(a => a.category === 'timespace').flatMap(a => 
+                a.bids.map((bid, i) => (
+                  <div key={`ts-${a.id}-${i}`} className="flex items-center justify-between text-xs py-1 px-2 bg-cyan-500/10 rounded">
+                    <span className="text-foreground/80">{bid.icon} {bid.user}</span>
+                    <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
+                  </div>
+                ))
+              )}
+              {activeAuctions.filter(a => a.category === 'timespace').reduce((sum, a) => sum + a.bids.length, 0) === 0 && (
+                <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bids yet</div>
+              )}
+            </div>
+          </div>
+
+          {/* LND Bidders */}
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">⚡</span>
+              <span className="text-xs font-bold text-foreground">LND</span>
+              <span className="ml-auto text-[10px] font-bold text-amber-400">
+                {activeAuctions.filter(a => a.category === 'lnd').reduce((sum, a) => sum + a.bids.length, 0)} bids
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
+              {activeAuctions.filter(a => a.category === 'lnd').flatMap(a => 
+                a.bids.map((bid, i) => (
+                  <div key={`lnd-${a.id}-${i}`} className="flex items-center justify-between text-xs py-1 px-2 bg-amber-500/10 rounded">
+                    <span className="text-foreground/80">{bid.icon} {bid.user}</span>
+                    <span className="font-mono text-gold text-[10px]">{bid.dkp}</span>
+                  </div>
+                ))
+              )}
+              {activeAuctions.filter(a => a.category === 'lnd').reduce((sum, a) => sum + a.bids.length, 0) === 0 && (
+                <div className="text-[11px] text-muted-foreground/60 text-center py-2">No bids yet</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Tab Navigation */}
       <div className="flex gap-2 mb-5 border-b border-primary/15 pb-3">
         <button
@@ -632,7 +838,14 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
               </div>
             )}
             {activeAuctions.map(auction => (
-              <AuctionCard key={auction.id} auction={auction} onBid={() => {}} bidLimits={bidLimits} />
+              <AuctionCard 
+                key={auction.id} 
+                auction={auction} 
+                onBid={handlePlaceBid} 
+                bidLimits={bidLimits}
+                userBidsCount={userBidsCount}
+                currentUser={CURRENT_USER.name}
+              />
             ))}
           </div>
         </>
@@ -689,8 +902,75 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
         </div>
       )}
 
-      <NewAuctionModal isOpen={showNewAuction} onClose={() => setShowNewAuction(false)} onAddAuction={handleAddAuction} />
+      <NewAuctionModal 
+        isOpen={showNewAuction} 
+        onClose={() => setShowNewAuction(false)} 
+        onAddAuction={handleAddAuction}
+        lootRemaining={guildLootRemaining}
+      />
       <LootHistoryModal isOpen={showLootHistory} onClose={() => setShowLootHistory(false)} />
+
+      {/* Bid Modal */}
+      {showBidModal !== null && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowBidModal(null)}>
+          <div 
+            className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-primary/15">
+              <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+                Place Bid
+              </h2>
+              <div className="text-xs text-muted-foreground mt-1">
+                {activeAuctions.find(a => a.id === showBidModal)?.name}
+              </div>
+            </div>
+            <div className="p-5 flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">DKP Amount</label>
+                <input
+                  type="number"
+                  value={bidAmount}
+                  onChange={e => setBidAmount(e.target.value)}
+                  placeholder="Enter DKP amount..."
+                  min="1"
+                  className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
+                  autoFocus
+                />
+              </div>
+              <div className="text-xs text-muted-foreground/70">
+                Your remaining bids for this category: <span className="font-mono font-bold text-gold">
+                  {(() => {
+                    const auction = activeAuctions.find(a => a.id === showBidModal)
+                    if (!auction) return 0
+                    return Math.max(0, (bidLimits[auction.category] || 2) - (userBidsCount[auction.category] || 0))
+                  })()}
+                </span>
+              </div>
+              <div className="flex gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBidModal(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-transparent text-muted-foreground border border-white/15 hover:bg-white/5 hover:border-white/25"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmBid}
+                  disabled={!bidAmount || parseInt(bidAmount) <= 0}
+                  className={`flex-1 py-2.5 px-4 rounded-xl border-none font-sans text-sm font-bold tracking-wide transition-all duration-200 ${
+                    bidAmount && parseInt(bidAmount) > 0
+                      ? 'cursor-pointer bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]'
+                      : 'cursor-not-allowed bg-gray-600/50 text-gray-400 opacity-60'
+                  }`}
+                >
+                  Confirm Bid
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
