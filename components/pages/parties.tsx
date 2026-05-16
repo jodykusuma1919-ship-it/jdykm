@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { allMembers } from '@/lib/data'
+import { canEditBattleSettings, CURRENT_USER_ROLE, getRoleColor } from '@/lib/roles'
 
 interface PartyMember {
   id: number
@@ -21,6 +22,8 @@ interface Party {
 const MAX_PARTY_SIZE = 5
 
 export function PartiesPage() {
+  const canEdit = canEditBattleSettings()
+  
   const [party, setParty] = useState<Party>({
     id: 'party-1',
     name: 'Alpha Squad',
@@ -40,7 +43,7 @@ export function PartiesPage() {
   )
 
   const addMember = (member: typeof allMembers[0]) => {
-    if (party.members.length >= MAX_PARTY_SIZE) return
+    if (!canEdit || party.members.length >= MAX_PARTY_SIZE) return
     const newMember: PartyMember = {
       id: member.id,
       name: member.name,
@@ -59,6 +62,7 @@ export function PartiesPage() {
   }
 
   const removeMember = (memberId: number) => {
+    if (!canEdit) return
     const newMembers = party.members.filter((m) => m.id !== memberId)
     const removedMember = party.members.find((m) => m.id === memberId)
     setParty({
@@ -69,19 +73,34 @@ export function PartiesPage() {
   }
 
   const setLeader = (memberName: string) => {
+    if (!canEdit) return
     setParty({ ...party, leader: memberName })
   }
 
   const updatePartyName = () => {
+    if (!canEdit) return
     setParty({ ...party, name: partyName })
   }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-        <h1 className="font-serif text-[26px] font-bold text-foreground flex items-center gap-3">
-          <span className="text-2xl">👥</span> Party Management
-        </h1>
+        <div>
+          <h1 className="font-serif text-[26px] font-bold text-foreground flex items-center gap-3">
+            <span className="text-2xl">👥</span> Party Management
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-muted-foreground">Your Role:</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(CURRENT_USER_ROLE)}`}>
+              {CURRENT_USER_ROLE}
+            </span>
+            {canEdit ? (
+              <span className="text-[10px] text-accent">Can Edit</span>
+            ) : (
+              <span className="text-[10px] text-muted-foreground/70">View Only</span>
+            )}
+          </div>
+        </div>
         <div className="text-sm text-muted-foreground">
           Max 1 Party with {MAX_PARTY_SIZE} Members
         </div>
@@ -100,9 +119,10 @@ export function PartiesPage() {
                 <input
                   type="text"
                   value={partyName}
-                  onChange={(e) => setPartyName(e.target.value)}
+                  onChange={(e) => canEdit && setPartyName(e.target.value)}
                   onBlur={updatePartyName}
-                  className="font-serif text-xl font-bold text-foreground bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/50 rounded px-1 -ml-1"
+                  disabled={!canEdit}
+                  className={`font-serif text-xl font-bold text-foreground bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/50 rounded px-1 -ml-1 ${!canEdit ? 'cursor-not-allowed' : ''}`}
                 />
               </div>
               <div className="text-xs text-muted-foreground mt-0.5">
@@ -153,22 +173,24 @@ export function PartiesPage() {
                 <div className="text-xs text-muted-foreground">{member.className}</div>
                 
                 {/* Actions */}
-                <div className="flex gap-2 mt-3">
-                  {member.name !== party.leader && (
+                {canEdit && (
+                  <div className="flex gap-2 mt-3">
+                    {member.name !== party.leader && (
+                      <button
+                        onClick={() => setLeader(member.name)}
+                        className="text-[10px] px-2 py-1 rounded bg-gold/20 text-gold hover:bg-gold/30 transition-colors"
+                      >
+                        Make Leader
+                      </button>
+                    )}
                     <button
-                      onClick={() => setLeader(member.name)}
-                      className="text-[10px] px-2 py-1 rounded bg-gold/20 text-gold hover:bg-gold/30 transition-colors"
+                      onClick={() => removeMember(member.id)}
+                      className="text-[10px] px-2 py-1 rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
                     >
-                      Make Leader
+                      Remove
                     </button>
-                  )}
-                  <button
-                    onClick={() => removeMember(member.id)}
-                    className="text-[10px] px-2 py-1 rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
-                  >
-                    Remove
-                  </button>
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -177,8 +199,11 @@ export function PartiesPage() {
           {Array.from({ length: MAX_PARTY_SIZE - party.members.length }).map((_, i) => (
             <button
               key={`empty-${i}`}
-              onClick={() => setShowMemberPicker(true)}
-              className="bg-white/3 border-2 border-dashed border-primary/20 rounded-xl p-4 min-h-[140px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all duration-200"
+              onClick={() => canEdit && setShowMemberPicker(true)}
+              disabled={!canEdit}
+              className={`bg-white/3 border-2 border-dashed border-primary/20 rounded-xl p-4 min-h-[140px] flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
+                canEdit ? 'cursor-pointer hover:border-primary/40 hover:bg-primary/5' : 'cursor-not-allowed opacity-50'
+              }`}
             >
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary/50 text-xl">
                 +
@@ -189,7 +214,7 @@ export function PartiesPage() {
         </div>
 
         {/* Add Member Button */}
-        {party.members.length < MAX_PARTY_SIZE && (
+        {canEdit && party.members.length < MAX_PARTY_SIZE && (
           <button
             onClick={() => setShowMemberPicker(true)}
             className="w-full py-3 rounded-xl border border-primary/30 bg-primary/10 text-primary-light font-semibold text-sm hover:bg-primary/20 transition-all duration-200"

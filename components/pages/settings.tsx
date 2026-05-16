@@ -1,15 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { CURRENT_USER_ROLE, canEditAllSettings, canEditBattleSettings, getRoleColor } from '@/lib/roles'
+import type { Page } from '@/app/page'
 
-// Current user role - in production this would come from auth context
-const CURRENT_USER_ROLE = 'Guild Master' // Options: 'Guild Master', 'Vice Master', 'Officer', 'Raid Leader', 'Member', 'Recruit'
-
-// Roles that can edit all settings
-const ADMIN_ROLES = ['Guild Master', 'Vice Master']
-
-function canEdit(): boolean {
-  return ADMIN_ROLES.includes(CURRENT_USER_ROLE)
+interface SettingsPageProps {
+  onNavigate?: (page: Page) => void
 }
 
 interface PresetCardProps {
@@ -83,10 +79,11 @@ function SettingToggle({ label, description, defaultOn, disabled }: { label: str
   )
 }
 
-export function SettingsPage() {
+export function SettingsPage({ onNavigate }: SettingsPageProps) {
   const [selectedPreset, setSelectedPreset] = useState('222')
   const [customValues, setCustomValues] = useState({ fragmentCard: 2, timespace: 2, lnd: 2 })
-  const isAdmin = canEdit()
+  const isFullAdmin = canEditAllSettings()
+  const canEditBattle = canEditBattleSettings()
 
   const presets = [
     { id: '333', icon: '⚔', label: '3-3-3', description: 'Balanced', values: { fragmentCard: 3, timespace: 3, lnd: 3 } },
@@ -95,7 +92,7 @@ export function SettingsPage() {
   ]
 
   const stepValue = (key: 'fragmentCard' | 'timespace' | 'lnd', dir: number) => {
-    if (!isAdmin) return
+    if (!isFullAdmin) return
     setSelectedPreset('custom')
     setCustomValues(v => ({
       ...v,
@@ -122,30 +119,69 @@ export function SettingsPage() {
           {/* Role indicator */}
           <div className="flex items-center gap-2 mt-2">
             <span className="text-xs text-muted-foreground">Your Role:</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded ${isAdmin ? 'bg-gold/20 text-gold' : 'bg-muted-foreground/20 text-muted-foreground'}`}>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(CURRENT_USER_ROLE)}`}>
               {CURRENT_USER_ROLE}
             </span>
-            {isAdmin && (
+            {isFullAdmin && (
               <span className="text-[10px] text-accent">Full Edit Access</span>
             )}
-            {!isAdmin && (
+            {!isFullAdmin && canEditBattle && (
+              <span className="text-[10px] text-primary-light">Battle Settings Only</span>
+            )}
+            {!isFullAdmin && !canEditBattle && (
               <span className="text-[10px] text-muted-foreground/70">View Only</span>
             )}
           </div>
         </div>
-        {isAdmin && (
+        {isFullAdmin && (
           <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]">
             💾 Save Changes
           </button>
         )}
       </div>
 
+      {/* Role Permissions Info */}
+      <div className="bg-primary/8 border border-primary/25 rounded-xl p-4 mb-6">
+        <div className="text-sm font-bold text-foreground mb-2">Role Permissions:</div>
+        <div className="grid grid-cols-2 gap-3 text-xs max-sm:grid-cols-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-gold"></span>
+            <span className="text-muted-foreground"><span className="text-gold font-semibold">Admin / Guild Master / Vice Master:</span> Full access to all settings</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+            <span className="text-muted-foreground"><span className="text-purple-400 font-semibold">Commander / Officer:</span> Parties and Battlefield only</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Navigation */}
+      {canEditBattle && onNavigate && (
+        <div className="flex gap-3 mb-6 flex-wrap">
+          <button 
+            onClick={() => onNavigate('parties')}
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary"
+          >
+            👥 Manage Parties
+          </button>
+          <button 
+            onClick={() => onNavigate('battlefield')}
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary"
+          >
+            ⚔ Battlefield Setup
+          </button>
+        </div>
+      )}
+
       {/* Bid Limit Section */}
       <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6 mb-6">
         <div className="border-b border-primary/15 pb-3 mb-5">
           <div className="text-[15px] font-bold text-foreground flex items-center gap-2">
             🔨 Bid Limit Rules
-            <span className="text-[11px] font-medium text-muted-foreground/70 ml-2">Controls how many times each member can bid per loot category per session</span>
+            <span className="text-[11px] font-medium text-muted-foreground/70 ml-2">Max bids per member per session</span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Fragment Card: max 40 | Timespace: max 50 | LND: max 50
           </div>
         </div>
 
@@ -156,21 +192,21 @@ export function SettingsPage() {
               key={preset.id}
               {...preset}
               active={selectedPreset === preset.id}
-              onSelect={() => isAdmin && setSelectedPreset(preset.id)}
-              disabled={!isAdmin}
+              onSelect={() => isFullAdmin && setSelectedPreset(preset.id)}
+              disabled={!isFullAdmin}
             />
           ))}
           
           {/* Custom Card */}
           <button
-            onClick={() => isAdmin && setSelectedPreset('custom')}
-            disabled={!isAdmin}
+            onClick={() => isFullAdmin && setSelectedPreset('custom')}
+            disabled={!isFullAdmin}
             className={`
               bg-white/3 border-2 rounded-[14px] p-4 transition-all duration-200 relative select-none text-left
-              ${!isAdmin ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
+              ${!isFullAdmin ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
               ${selectedPreset === 'custom'
                 ? 'border-primary bg-primary/14 shadow-[0_0_0_1px_rgba(124,58,237,0.25),0_0_10px_rgba(124,58,237,0.3)]' 
-                : !isAdmin ? 'border-primary/10' : 'border-primary/18 hover:border-primary/45 hover:bg-primary/8 hover:-translate-y-0.5'
+                : !isFullAdmin ? 'border-primary/10' : 'border-primary/18 hover:border-primary/45 hover:bg-primary/8 hover:-translate-y-0.5'
               }
             `}
           >
@@ -195,16 +231,16 @@ export function SettingsPage() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => stepValue(key, -1)}
-                    disabled={!isAdmin}
-                    className={`w-[30px] h-[30px] rounded-lg border border-primary/30 bg-primary/10 text-foreground text-lg font-bold flex items-center justify-center transition-all duration-150 leading-none ${!isAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-primary/30 hover:border-primary'}`}
+                    disabled={!isFullAdmin}
+                    className={`w-[30px] h-[30px] rounded-lg border border-primary/30 bg-primary/10 text-foreground text-lg font-bold flex items-center justify-center transition-all duration-150 leading-none ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-primary/30 hover:border-primary'}`}
                   >
                     −
                   </button>
                   <span className="font-mono text-xl font-bold text-primary-light min-w-7 text-center">{customValues[key]}</span>
                   <button 
                     onClick={() => stepValue(key, 1)}
-                    disabled={!isAdmin}
-                    className={`w-[30px] h-[30px] rounded-lg border border-primary/30 bg-primary/10 text-foreground text-lg font-bold flex items-center justify-center transition-all duration-150 leading-none ${!isAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-primary/30 hover:border-primary'}`}
+                    disabled={!isFullAdmin}
+                    className={`w-[30px] h-[30px] rounded-lg border border-primary/30 bg-primary/10 text-foreground text-lg font-bold flex items-center justify-center transition-all duration-150 leading-none ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-primary/30 hover:border-primary'}`}
                   >
                     +
                   </button>
@@ -222,9 +258,9 @@ export function SettingsPage() {
           <div className="text-sm font-bold text-foreground mb-4 pb-2.5 border-b border-primary/12">
             🏰 Guild Settings
           </div>
-          <SettingToggle label="Auto-accept Recruits" description="Automatically accept applications that meet requirements" disabled={!isAdmin} />
-          <SettingToggle label="Public Guild Profile" description="Allow anyone to view guild stats and members" defaultOn disabled={!isAdmin} />
-          <SettingToggle label="Discord Webhooks" description="Send notifications to connected Discord server" defaultOn disabled={!isAdmin} />
+          <SettingToggle label="Auto-accept Recruits" description="Automatically accept applications that meet requirements" disabled={!isFullAdmin} />
+          <SettingToggle label="Public Guild Profile" description="Allow anyone to view guild stats and members" defaultOn disabled={!isFullAdmin} />
+          <SettingToggle label="Discord Webhooks" description="Send notifications to connected Discord server" defaultOn disabled={!isFullAdmin} />
         </div>
 
         {/* DKP Settings */}
@@ -232,9 +268,9 @@ export function SettingsPage() {
           <div className="text-sm font-bold text-foreground mb-4 pb-2.5 border-b border-primary/12">
             💎 DKP Settings
           </div>
-          <SettingToggle label="Auto DKP on Attendance" description="Automatically award DKP when members mark attendance" defaultOn disabled={!isAdmin} />
-          <SettingToggle label="Weekly DKP Decay" description="Reduce DKP by 5% each week for inactive members" disabled={!isAdmin} />
-          <SettingToggle label="DKP Cap" description="Set maximum DKP a member can accumulate" disabled={!isAdmin} />
+          <SettingToggle label="Auto DKP on Attendance" description="Automatically award DKP when members mark attendance" defaultOn disabled={!isFullAdmin} />
+          <SettingToggle label="Weekly DKP Decay" description="Reduce DKP by 5% each week for inactive members" disabled={!isFullAdmin} />
+          <SettingToggle label="DKP Cap" description="Set maximum DKP a member can accumulate" disabled={!isFullAdmin} />
         </div>
 
         {/* Notification Settings */}
@@ -242,9 +278,9 @@ export function SettingsPage() {
           <div className="text-sm font-bold text-foreground mb-4 pb-2.5 border-b border-primary/12">
             🔔 Notifications
           </div>
-          <SettingToggle label="New Applications" description="Notify officers of new recruitment applications" defaultOn disabled={!isAdmin} />
-          <SettingToggle label="Raid Reminders" description="Send reminders before scheduled raids" defaultOn disabled={!isAdmin} />
-          <SettingToggle label="Auction Alerts" description="Alert members when auctions are ending" defaultOn disabled={!isAdmin} />
+          <SettingToggle label="New Applications" description="Notify officers of new recruitment applications" defaultOn disabled={!isFullAdmin} />
+          <SettingToggle label="Raid Reminders" description="Send reminders before scheduled raids" defaultOn disabled={!isFullAdmin} />
+          <SettingToggle label="Auction Alerts" description="Alert members when auctions are ending" defaultOn disabled={!isFullAdmin} />
         </div>
 
         {/* Privacy Settings */}
@@ -252,9 +288,9 @@ export function SettingsPage() {
           <div className="text-sm font-bold text-foreground mb-4 pb-2.5 border-b border-primary/12">
             🔒 Privacy
           </div>
-          <SettingToggle label="Hide DKP from Recruits" description="Only show DKP values to full members" disabled={!isAdmin} />
-          <SettingToggle label="Anonymous Bidding" description="Hide bidder names during auctions" disabled={!isAdmin} />
-          <SettingToggle label="Member Activity Logs" description="Track detailed member activity" defaultOn disabled={!isAdmin} />
+          <SettingToggle label="Hide DKP from Recruits" description="Only show DKP values to full members" disabled={!isFullAdmin} />
+          <SettingToggle label="Anonymous Bidding" description="Hide bidder names during auctions" disabled={!isFullAdmin} />
+          <SettingToggle label="Member Activity Logs" description="Track detailed member activity" defaultOn disabled={!isFullAdmin} />
         </div>
       </div>
     </div>

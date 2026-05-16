@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { allMembers } from '@/lib/data'
+import { canEditBattleSettings, CURRENT_USER_ROLE, getRoleColor } from '@/lib/roles'
 
 interface PartyMember {
   id: number
@@ -30,6 +31,7 @@ function PartyCard({
   onAddMember,
   onDeleteParty,
   usedMemberIds,
+  canEdit,
 }: {
   party: Party
   onUpdateName: (name: string) => void
@@ -38,6 +40,7 @@ function PartyCard({
   onAddMember: (member: typeof allMembers[0]) => void
   onDeleteParty?: () => void
   usedMemberIds: Set<number>
+  canEdit: boolean
 }) {
   const [editingName, setEditingName] = useState(party.name)
   const [showMemberPicker, setShowMemberPicker] = useState(false)
@@ -59,16 +62,17 @@ function PartyCard({
           <input
             type="text"
             value={editingName}
-            onChange={(e) => setEditingName(e.target.value)}
-            onBlur={() => onUpdateName(editingName)}
-            className="font-bold text-foreground bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/50 rounded px-1 text-sm flex-1 min-w-0"
+            onChange={(e) => canEdit && setEditingName(e.target.value)}
+            onBlur={() => canEdit && onUpdateName(editingName)}
+            disabled={!canEdit}
+            className={`font-bold text-foreground bg-transparent border-none outline-none focus:ring-1 focus:ring-primary/50 rounded px-1 text-sm flex-1 min-w-0 ${!canEdit ? 'cursor-not-allowed' : ''}`}
           />
         </div>
         <div className="flex items-center gap-1">
           <span className="text-[10px] text-muted-foreground px-2 py-0.5 rounded bg-primary/10">
             {party.members.length}/{MAX_PARTY_SIZE}
           </span>
-          {onDeleteParty && (
+          {onDeleteParty && canEdit && (
             <button
               onClick={onDeleteParty}
               className="w-6 h-6 rounded bg-destructive/20 text-destructive hover:bg-destructive/30 flex items-center justify-center text-xs transition-colors"
@@ -112,23 +116,25 @@ function PartyCard({
               </div>
               <div className="text-[10px] text-muted-foreground">{member.className}</div>
             </div>
-            <div className="flex gap-1">
-              {member.name !== party.leader && (
+            {canEdit && (
+              <div className="flex gap-1">
+                {member.name !== party.leader && (
+                  <button
+                    onClick={() => onSetLeader(member.name)}
+                    title="Make Leader"
+                    className="w-5 h-5 rounded bg-gold/20 text-gold hover:bg-gold/30 flex items-center justify-center text-[10px] transition-colors"
+                  >
+                    👑
+                  </button>
+                )}
                 <button
-                  onClick={() => onSetLeader(member.name)}
-                  title="Make Leader"
-                  className="w-5 h-5 rounded bg-gold/20 text-gold hover:bg-gold/30 flex items-center justify-center text-[10px] transition-colors"
+                  onClick={() => onRemoveMember(member.id)}
+                  className="w-5 h-5 rounded bg-destructive/20 text-destructive hover:bg-destructive/30 flex items-center justify-center text-[10px] transition-colors"
                 >
-                  👑
+                  ✕
                 </button>
-              )}
-              <button
-                onClick={() => onRemoveMember(member.id)}
-                className="w-5 h-5 rounded bg-destructive/20 text-destructive hover:bg-destructive/30 flex items-center justify-center text-[10px] transition-colors"
-              >
-                ✕
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         ))}
 
@@ -136,8 +142,11 @@ function PartyCard({
         {Array.from({ length: MAX_PARTY_SIZE - party.members.length }).map((_, i) => (
           <button
             key={`empty-${i}`}
-            onClick={() => setShowMemberPicker(true)}
-            className="w-full flex items-center gap-2 p-2 rounded-lg border border-dashed border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
+            onClick={() => canEdit && setShowMemberPicker(true)}
+            disabled={!canEdit}
+            className={`w-full flex items-center gap-2 p-2 rounded-lg border border-dashed border-primary/20 transition-all text-left ${
+              canEdit ? 'hover:border-primary/40 hover:bg-primary/5' : 'opacity-50 cursor-not-allowed'
+            }`}
           >
             <span className="text-[10px] text-muted-foreground/50 w-4">#{party.members.length + i + 1}</span>
             <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary/50 text-sm">
@@ -149,7 +158,7 @@ function PartyCard({
       </div>
 
       {/* Add Member Button */}
-      {party.members.length < MAX_PARTY_SIZE && (
+      {canEdit && party.members.length < MAX_PARTY_SIZE && (
         <button
           onClick={() => setShowMemberPicker(true)}
           className="w-full py-2 rounded-lg border border-primary/30 bg-primary/10 text-primary-light font-semibold text-xs hover:bg-primary/20 transition-all"
@@ -221,6 +230,8 @@ function PartyCard({
 }
 
 export function BattlefieldPage() {
+  const canEdit = canEditBattleSettings()
+  
   const [mainParties, setMainParties] = useState<Party[]>([
     { id: 'main-1', name: 'Main Party 1', leader: '', members: [] },
   ])
@@ -237,6 +248,7 @@ export function BattlefieldPage() {
   }
 
   const createParty = (section: 'main' | 'subElite') => {
+    if (!canEdit) return
     const newParty: Party = {
       id: `${section}-${Date.now()}`,
       name: section === 'main' ? `Main Party ${mainParties.length + 1}` : `Sub Elite ${subEliteParties.length + 1}`,
@@ -255,18 +267,21 @@ export function BattlefieldPage() {
   }
 
   const updateParty = (section: 'main' | 'subElite', partyId: string, updates: Partial<Party>) => {
+    if (!canEdit) return
     const setter = section === 'main' ? setMainParties : setSubEliteParties
     const parties = section === 'main' ? mainParties : subEliteParties
     setter(parties.map((p) => (p.id === partyId ? { ...p, ...updates } : p)))
   }
 
   const deleteParty = (section: 'main' | 'subElite', partyId: string) => {
+    if (!canEdit) return
     const setter = section === 'main' ? setMainParties : setSubEliteParties
     const parties = section === 'main' ? mainParties : subEliteParties
     setter(parties.filter((p) => p.id !== partyId))
   }
 
   const addMemberToParty = (section: 'main' | 'subElite', partyId: string, member: typeof allMembers[0]) => {
+    if (!canEdit) return
     const parties = section === 'main' ? mainParties : subEliteParties
     const party = parties.find((p) => p.id === partyId)
     if (!party || party.members.length >= MAX_PARTY_SIZE) return
@@ -285,6 +300,7 @@ export function BattlefieldPage() {
   }
 
   const removeMemberFromParty = (section: 'main' | 'subElite', partyId: string, memberId: number) => {
+    if (!canEdit) return
     const parties = section === 'main' ? mainParties : subEliteParties
     const party = parties.find((p) => p.id === partyId)
     if (!party) return
@@ -304,9 +320,22 @@ export function BattlefieldPage() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-        <h1 className="font-serif text-[26px] font-bold text-foreground flex items-center gap-3">
-          <span className="text-2xl">⚔</span> Battlefield Setup
-        </h1>
+        <div>
+          <h1 className="font-serif text-[26px] font-bold text-foreground flex items-center gap-3">
+            <span className="text-2xl">⚔</span> Battlefield Setup
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-muted-foreground">Your Role:</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(CURRENT_USER_ROLE)}`}>
+              {CURRENT_USER_ROLE}
+            </span>
+            {canEdit ? (
+              <span className="text-[10px] text-accent">Can Edit</span>
+            ) : (
+              <span className="text-[10px] text-muted-foreground/70">View Only</span>
+            )}
+          </div>
+        </div>
         <div className="text-sm text-muted-foreground">
           Organize parties for raids and battles
         </div>
@@ -323,7 +352,7 @@ export function BattlefieldPage() {
               Max {MAX_MAIN_PARTIES} parties · {totalMainMembers} members assigned
             </p>
           </div>
-          {mainParties.length < MAX_MAIN_PARTIES && (
+          {canEdit && mainParties.length < MAX_MAIN_PARTIES && (
             <button
               onClick={() => createParty('main')}
               className="inline-flex items-center gap-2 py-2 px-4 rounded-xl bg-primary/20 text-primary-light font-semibold text-sm hover:bg-primary/30 transition-all"
@@ -344,6 +373,7 @@ export function BattlefieldPage() {
               onAddMember={(member) => addMemberToParty('main', party.id, member)}
               onDeleteParty={mainParties.length > 1 ? () => deleteParty('main', party.id) : undefined}
               usedMemberIds={usedMemberIds}
+              canEdit={canEdit}
             />
           ))}
         </div>
@@ -360,12 +390,14 @@ export function BattlefieldPage() {
               12+ parties allowed · {totalSubMembers} members assigned
             </p>
           </div>
-          <button
-            onClick={() => createParty('subElite')}
-            className="inline-flex items-center gap-2 py-2 px-4 rounded-xl bg-accent/20 text-accent font-semibold text-sm hover:bg-accent/30 transition-all"
-          >
-            + Add Party ({subEliteParties.length})
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => createParty('subElite')}
+              className="inline-flex items-center gap-2 py-2 px-4 rounded-xl bg-accent/20 text-accent font-semibold text-sm hover:bg-accent/30 transition-all"
+            >
+              + Add Party ({subEliteParties.length})
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-4 gap-4 max-xl:grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
@@ -379,6 +411,7 @@ export function BattlefieldPage() {
               onAddMember={(member) => addMemberToParty('subElite', party.id, member)}
               onDeleteParty={subEliteParties.length > 1 ? () => deleteParty('subElite', party.id) : undefined}
               usedMemberIds={usedMemberIds}
+              canEdit={canEdit}
             />
           ))}
         </div>

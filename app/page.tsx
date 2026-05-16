@@ -70,6 +70,7 @@ export default function Home() {
         breadcrumb={pageLabels[currentPage]}
         collapsed={sidebarCollapsed}
         onToggleSidebar={toggleSidebar}
+        onNavigate={navigate}
       />
 
       <main 
@@ -87,7 +88,7 @@ export default function Home() {
         {currentPage === 'attendance' && <AttendancePage />}
         {currentPage === 'analytics' && <AnalyticsPage />}
         {currentPage === 'recruitment' && <RecruitmentPage />}
-        {currentPage === 'settings' && <SettingsPage />}
+        {currentPage === 'settings' && <SettingsPage onNavigate={navigate} />}
         {currentPage === 'parties' && <PartiesPage />}
         {currentPage === 'battlefield' && <BattlefieldPage />}
       </main>
