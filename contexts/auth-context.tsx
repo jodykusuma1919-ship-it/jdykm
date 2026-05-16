@@ -2,11 +2,13 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 
+export type GuildRole = 'Admin' | 'Guild Master' | 'Vice Master' | 'Commander' | 'Officer' | 'Raid Leader' | 'Member' | 'Recruit'
+
 export interface User {
   id: string
   username: string
   displayName: string
-  role: 'admin' | 'officer' | 'member'
+  role: GuildRole
   createdAt: string
 }
 
@@ -29,7 +31,7 @@ const DEFAULT_ADMIN: User & { password: string } = {
   username: 'admin',
   password: 'admin123',
   displayName: 'Guild Master',
-  role: 'admin',
+  role: 'Guild Master',
   createdAt: new Date().toISOString(),
 }
 
@@ -95,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       username,
       password,
       displayName: displayName || username,
-      role: 'member',
+      role: 'Member',
       createdAt: new Date().toISOString(),
     }
 

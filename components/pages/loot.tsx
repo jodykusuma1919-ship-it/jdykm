@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import type { Page } from '@/app/page'
 import { auctions } from '@/lib/data'
+import { canManageLoot } from '@/lib/roles'
+import type { GuildRole } from '@/lib/roles'
 
 interface LootPageProps {
   onNavigate: (page: Page) => void
+  userRole: GuildRole
 }
 
 // Display setting options (20 - 50 range)
@@ -291,7 +294,8 @@ type Auction = {
   timeRemaining: number
 }
 
-export function LootPage({ onNavigate }: LootPageProps) {
+export function LootPage({ onNavigate, userRole }: LootPageProps) {
+  const canManage = canManageLoot(userRole)
   const [showNewAuction, setShowNewAuction] = useState(false)
   const [showLootHistory, setShowLootHistory] = useState(false)
   const [activeAuctions, setActiveAuctions] = useState<Auction[]>(auctions as Auction[])
@@ -316,12 +320,14 @@ export function LootPage({ onNavigate }: LootPageProps) {
           >
             Loot History
           </button>
-          <button 
-            onClick={() => setShowNewAuction(true)}
-            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
-          >
-            + New Auction
-          </button>
+          {canManage && (
+            <button 
+              onClick={() => setShowNewAuction(true)}
+              className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+            >
+              + New Auction
+            </button>
+          )}
         </div>
       </div>
 

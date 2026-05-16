@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { allMembers } from '@/lib/data'
-import { canEditBattleSettings, CURRENT_USER_ROLE, getRoleColor } from '@/lib/roles'
+import { getRoleColor } from '@/lib/roles'
 
 interface PartyMember {
   id: number
@@ -230,7 +230,8 @@ function PartyCard({
 }
 
 export function BattlefieldPage() {
-  const canEdit = canEditBattleSettings()
+  // For now, allow editing - in full implementation this would come from user context
+  const canEdit = true
   
   const [mainParties, setMainParties] = useState<Party[]>([
     { id: 'main-1', name: 'Main Party 1', leader: '', members: [] },

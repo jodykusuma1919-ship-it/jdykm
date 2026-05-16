@@ -1,9 +1,6 @@
 // Role system for guild management
 export type GuildRole = 'Admin' | 'Guild Master' | 'Vice Master' | 'Commander' | 'Officer' | 'Raid Leader' | 'Member' | 'Recruit'
 
-// Current user role - in production this would come from auth context
-export const CURRENT_USER_ROLE: GuildRole = 'Guild Master'
-
 // Role hierarchy levels (higher = more permissions)
 const ROLE_LEVELS: Record<GuildRole, number> = {
   'Admin': 100,
@@ -16,25 +13,37 @@ const ROLE_LEVELS: Record<GuildRole, number> = {
   'Recruit': 10,
 }
 
-// Permission checks
-export function canEditAllSettings(): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master'].includes(CURRENT_USER_ROLE)
+// Permission checks - these accept a role parameter now
+export function canEditAllSettings(role: GuildRole): boolean {
+  return ['Admin', 'Guild Master', 'Vice Master'].includes(role)
 }
 
-export function canEditBattleSettings(): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(CURRENT_USER_ROLE)
+export function canEditBattleSettings(role: GuildRole): boolean {
+  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
 }
 
-export function canManageRecruitment(): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(CURRENT_USER_ROLE)
+export function canManageRecruitment(role: GuildRole): boolean {
+  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
 }
 
-export function canRecordAttendance(): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer', 'Raid Leader'].includes(CURRENT_USER_ROLE)
+export function canRecordAttendance(role: GuildRole): boolean {
+  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer', 'Raid Leader'].includes(role)
 }
 
-export function canViewReports(): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(CURRENT_USER_ROLE)
+export function canViewReports(role: GuildRole): boolean {
+  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
+}
+
+export function canViewAllMembers(role: GuildRole): boolean {
+  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer', 'Raid Leader'].includes(role)
+}
+
+export function canManageDKP(role: GuildRole): boolean {
+  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
+}
+
+export function canManageLoot(role: GuildRole): boolean {
+  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
 }
 
 export function getRoleLevel(role: GuildRole): number {

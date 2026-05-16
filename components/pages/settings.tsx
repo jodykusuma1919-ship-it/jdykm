@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { CURRENT_USER_ROLE, canEditAllSettings, canEditBattleSettings, getRoleColor } from '@/lib/roles'
+import { canEditAllSettings, canEditBattleSettings, getRoleColor } from '@/lib/roles'
+import type { GuildRole } from '@/lib/roles'
 import type { Page } from '@/app/page'
 
 interface SettingsPageProps {
   onNavigate?: (page: Page) => void
+  userRole: GuildRole
 }
 
 interface PresetCardProps {
@@ -79,7 +81,58 @@ function SettingToggle({ label, description, defaultOn, disabled }: { label: str
   )
 }
 
-export function SettingsPage({ onNavigate }: SettingsPageProps) {
+// Stepper Component with +/- buttons only (no keyboard input)
+function StepperInput({ 
+  value, 
+  onChange, 
+  min = 0, 
+  max = 100, 
+  step = 1,
+  disabled = false,
+  colorClass = 'border-primary/30 bg-primary/10 hover:bg-primary/30 hover:border-primary'
+}: { 
+  value: number
+  onChange: (value: number) => void
+  min?: number
+  max?: number
+  step?: number
+  disabled?: boolean
+  colorClass?: string
+}) {
+  const decrement = () => {
+    if (!disabled && value > min) {
+      onChange(Math.max(min, value - step))
+    }
+  }
+
+  const increment = () => {
+    if (!disabled && value < max) {
+      onChange(Math.min(max, value + step))
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button 
+        onClick={decrement}
+        disabled={disabled || value <= min}
+        className={`w-[36px] h-[36px] rounded-lg border ${colorClass} text-foreground text-xl font-bold flex items-center justify-center transition-all duration-150 leading-none ${disabled || value <= min ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+      >
+        −
+      </button>
+      <span className="font-mono text-xl font-bold text-primary-light min-w-10 text-center">{value}</span>
+      <button 
+        onClick={increment}
+        disabled={disabled || value >= max}
+        className={`w-[36px] h-[36px] rounded-lg border ${colorClass} text-foreground text-xl font-bold flex items-center justify-center transition-all duration-150 leading-none ${disabled || value >= max ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
+export function SettingsPage({ onNavigate, userRole }: SettingsPageProps) {
   const [selectedPreset, setSelectedPreset] = useState('222')
   const [customValues, setCustomValues] = useState({ fragmentCard: 2, timespace: 2, lnd: 2 })
   const [lootRewards, setLootRewards] = useState({
@@ -88,12 +141,11 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
     lnd: { dkpCost: 200, quantity: 1 },
   })
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const isFullAdmin = canEditAllSettings()
-  const canEditBattle = canEditBattleSettings()
+  const isFullAdmin = canEditAllSettings(userRole)
+  const canEditBattle = canEditBattleSettings(userRole)
   
   const handleSaveChanges = () => {
     setSaveStatus('saving')
-    // Simulate saving to backend/localStorage
     setTimeout(() => {
       localStorage.setItem('guildSettings', JSON.stringify({
         selectedPreset,
@@ -111,12 +163,12 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
     { id: '111', icon: '🎯', label: '1-1-1', description: 'Strict', values: { fragmentCard: 1, timespace: 1, lnd: 1 } },
   ]
 
-  const stepValue = (key: 'fragmentCard' | 'timespace' | 'lnd', dir: number) => {
+  const stepValue = (key: 'fragmentCard' | 'timespace' | 'lnd', newValue: number) => {
     if (!isFullAdmin) return
     setSelectedPreset('custom')
     setCustomValues(v => ({
       ...v,
-      [key]: Math.max(0, Math.min(100, v[key] + dir))
+      [key]: newValue
     }))
   }
 
@@ -139,8 +191,8 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
           {/* Role indicator */}
           <div className="flex items-center gap-2 mt-2">
             <span className="text-xs text-muted-foreground">Your Role:</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(CURRENT_USER_ROLE)}`}>
-              {CURRENT_USER_ROLE}
+            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(userRole)}`}>
+              {userRole}
             </span>
             {isFullAdmin && (
               <span className="text-[10px] text-accent">Full Edit Access</span>
@@ -252,29 +304,19 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
           </button>
         </div>
 
-        {/* Custom Values */}
+        {/* Custom Values with +/- steppers only */}
         {selectedPreset === 'custom' && (
           <div className="grid grid-cols-3 gap-4 p-4 bg-primary/5 border border-primary/20 rounded-xl max-sm:grid-cols-1">
             {(['fragmentCard', 'timespace', 'lnd'] as const).map(key => (
               <div key={key} className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{getDisplayLabel(key)}</span>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => stepValue(key, -1)}
-                    disabled={!isFullAdmin}
-                    className={`w-[30px] h-[30px] rounded-lg border border-primary/30 bg-primary/10 text-foreground text-lg font-bold flex items-center justify-center transition-all duration-150 leading-none ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-primary/30 hover:border-primary'}`}
-                  >
-                    −
-                  </button>
-                  <span className="font-mono text-xl font-bold text-primary-light min-w-7 text-center">{customValues[key]}</span>
-                  <button 
-                    onClick={() => stepValue(key, 1)}
-                    disabled={!isFullAdmin}
-                    className={`w-[30px] h-[30px] rounded-lg border border-primary/30 bg-primary/10 text-foreground text-lg font-bold flex items-center justify-center transition-all duration-150 leading-none ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-primary/30 hover:border-primary'}`}
-                  >
-                    +
-                  </button>
-                </div>
+                <StepperInput
+                  value={customValues[key]}
+                  onChange={(val) => stepValue(key, val)}
+                  min={0}
+                  max={100}
+                  disabled={!isFullAdmin}
+                />
               </div>
             ))}
           </div>
@@ -300,38 +342,29 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
               <span className="text-xl">🃏</span>
               <span className="text-sm font-bold text-foreground">Fragment Card</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">DKP Cost per Bid</label>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, fragmentCard: { ...r.fragmentCard, dkpCost: Math.max(10, r.fragmentCard.dkpCost - 10) } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-purple-500/20'}`}
-                  >−</button>
-                  <span className="font-mono text-lg font-bold text-purple-400 min-w-[50px] text-center">{lootRewards.fragmentCard.dkpCost}</span>
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, fragmentCard: { ...r.fragmentCard, dkpCost: r.fragmentCard.dkpCost + 10 } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-purple-500/20'}`}
-                  >+</button>
-                </div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-2 block">DKP Cost per Bid</label>
+                <StepperInput
+                  value={lootRewards.fragmentCard.dkpCost}
+                  onChange={(val) => isFullAdmin && setLootRewards(r => ({ ...r, fragmentCard: { ...r.fragmentCard, dkpCost: val } }))}
+                  min={10}
+                  max={1000}
+                  step={10}
+                  disabled={!isFullAdmin}
+                  colorClass="border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 hover:border-purple-500"
+                />
               </div>
               <div>
-                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">Default Quantity</label>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, fragmentCard: { ...r.fragmentCard, quantity: Math.max(1, r.fragmentCard.quantity - 1) } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-purple-500/20'}`}
-                  >−</button>
-                  <span className="font-mono text-lg font-bold text-purple-400 min-w-[50px] text-center">x{lootRewards.fragmentCard.quantity}</span>
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, fragmentCard: { ...r.fragmentCard, quantity: Math.min(10, r.fragmentCard.quantity + 1) } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-purple-500/20'}`}
-                  >+</button>
-                </div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-2 block">Default Quantity</label>
+                <StepperInput
+                  value={lootRewards.fragmentCard.quantity}
+                  onChange={(val) => isFullAdmin && setLootRewards(r => ({ ...r, fragmentCard: { ...r.fragmentCard, quantity: val } }))}
+                  min={1}
+                  max={10}
+                  disabled={!isFullAdmin}
+                  colorClass="border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 hover:border-purple-500"
+                />
               </div>
             </div>
           </div>
@@ -342,38 +375,29 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
               <span className="text-xl">🔮</span>
               <span className="text-sm font-bold text-foreground">Timespace</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">DKP Cost per Bid</label>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, timespace: { ...r.timespace, dkpCost: Math.max(10, r.timespace.dkpCost - 10) } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-cyan-500/20'}`}
-                  >−</button>
-                  <span className="font-mono text-lg font-bold text-cyan-400 min-w-[50px] text-center">{lootRewards.timespace.dkpCost}</span>
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, timespace: { ...r.timespace, dkpCost: r.timespace.dkpCost + 10 } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-cyan-500/20'}`}
-                  >+</button>
-                </div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-2 block">DKP Cost per Bid</label>
+                <StepperInput
+                  value={lootRewards.timespace.dkpCost}
+                  onChange={(val) => isFullAdmin && setLootRewards(r => ({ ...r, timespace: { ...r.timespace, dkpCost: val } }))}
+                  min={10}
+                  max={1000}
+                  step={10}
+                  disabled={!isFullAdmin}
+                  colorClass="border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 hover:border-cyan-500"
+                />
               </div>
               <div>
-                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">Default Quantity</label>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, timespace: { ...r.timespace, quantity: Math.max(1, r.timespace.quantity - 1) } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-cyan-500/20'}`}
-                  >−</button>
-                  <span className="font-mono text-lg font-bold text-cyan-400 min-w-[50px] text-center">x{lootRewards.timespace.quantity}</span>
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, timespace: { ...r.timespace, quantity: Math.min(10, r.timespace.quantity + 1) } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-cyan-500/20'}`}
-                  >+</button>
-                </div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-2 block">Default Quantity</label>
+                <StepperInput
+                  value={lootRewards.timespace.quantity}
+                  onChange={(val) => isFullAdmin && setLootRewards(r => ({ ...r, timespace: { ...r.timespace, quantity: val } }))}
+                  min={1}
+                  max={10}
+                  disabled={!isFullAdmin}
+                  colorClass="border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 hover:border-cyan-500"
+                />
               </div>
             </div>
           </div>
@@ -384,38 +408,29 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
               <span className="text-xl">⚡</span>
               <span className="text-sm font-bold text-foreground">LND</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">DKP Cost per Bid</label>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, dkpCost: Math.max(10, r.lnd.dkpCost - 10) } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-amber-500/30 bg-amber-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-amber-500/20'}`}
-                  >−</button>
-                  <span className="font-mono text-lg font-bold text-amber-400 min-w-[50px] text-center">{lootRewards.lnd.dkpCost}</span>
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, dkpCost: r.lnd.dkpCost + 10 } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-amber-500/30 bg-amber-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-amber-500/20'}`}
-                  >+</button>
-                </div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-2 block">DKP Cost per Bid</label>
+                <StepperInput
+                  value={lootRewards.lnd.dkpCost}
+                  onChange={(val) => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, dkpCost: val } }))}
+                  min={10}
+                  max={1000}
+                  step={10}
+                  disabled={!isFullAdmin}
+                  colorClass="border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500"
+                />
               </div>
               <div>
-                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">Default Quantity</label>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, quantity: Math.max(1, r.lnd.quantity - 1) } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-amber-500/30 bg-amber-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-amber-500/20'}`}
-                  >−</button>
-                  <span className="font-mono text-lg font-bold text-amber-400 min-w-[50px] text-center">x{lootRewards.lnd.quantity}</span>
-                  <button 
-                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, quantity: Math.min(10, r.lnd.quantity + 1) } }))}
-                    disabled={!isFullAdmin}
-                    className={`w-8 h-8 rounded-lg border border-amber-500/30 bg-amber-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-amber-500/20'}`}
-                  >+</button>
-                </div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-2 block">Default Quantity</label>
+                <StepperInput
+                  value={lootRewards.lnd.quantity}
+                  onChange={(val) => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, quantity: val } }))}
+                  min={1}
+                  max={10}
+                  disabled={!isFullAdmin}
+                  colorClass="border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500"
+                />
               </div>
             </div>
           </div>

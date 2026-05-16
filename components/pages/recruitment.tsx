@@ -2,6 +2,12 @@
 
 import { recruits } from '@/lib/data'
 import { useState, useRef } from 'react'
+import { canManageRecruitment } from '@/lib/roles'
+import type { GuildRole } from '@/lib/roles'
+
+interface RecruitmentPageProps {
+  userRole: GuildRole
+}
 
 interface GearImage {
   id: string
@@ -46,7 +52,6 @@ function ApplyModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would submit the application with images
     onClose()
     setCharacterName('')
     setGearScore('')
@@ -302,13 +307,120 @@ function ManageRequirementsModal({ isOpen, onClose }: { isOpen: boolean; onClose
   )
 }
 
-export function RecruitmentPage() {
+function ViewApplicationModal({ 
+  recruit, 
+  isOpen, 
+  onClose, 
+  onAccept, 
+  onDecline 
+}: { 
+  recruit: typeof recruits[0] | null
+  isOpen: boolean
+  onClose: () => void
+  onAccept: () => void
+  onDecline: () => void
+}) {
+  if (!isOpen || !recruit) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-6 border-b border-primary/15 sticky top-0 bg-card z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-[32px]">
+              {recruit.clsIcon}
+            </div>
+            <div className="flex-1">
+              <h2 className="font-serif text-xl font-bold text-foreground">{recruit.name}</h2>
+              <div className="text-sm text-muted-foreground">{recruit.cls} · {recruit.role}</div>
+            </div>
+            <div className="text-xs text-muted-foreground/70">{recruit.date}</div>
+          </div>
+        </div>
+        
+        <div className="p-6 overflow-y-auto max-h-[60vh]">
+          {/* Application Message */}
+          <div className="mb-6">
+            <div className="text-xs font-bold text-muted-foreground/70 uppercase tracking-wider mb-2">Application Message</div>
+            <div className="text-sm text-foreground bg-white/3 border border-primary/10 rounded-xl p-4 leading-relaxed">
+              {recruit.app}
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-4 mb-6 max-sm:grid-cols-1">
+            <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-4 text-center">
+              <div className="text-2xl font-mono font-bold text-cyan">{recruit.gs}</div>
+              <div className="text-xs text-muted-foreground mt-1">Gear Score</div>
+            </div>
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-center">
+              <div className="text-2xl font-mono font-bold text-foreground">{recruit.raids}</div>
+              <div className="text-xs text-muted-foreground mt-1">Raid Experience</div>
+            </div>
+            <div className="bg-accent/5 border border-accent/20 rounded-xl p-4 text-center">
+              <div className="text-2xl font-mono font-bold text-accent">{recruit.att}</div>
+              <div className="text-xs text-muted-foreground mt-1">Attendance Rate</div>
+            </div>
+          </div>
+
+          {/* Gear Screenshots */}
+          <div className="mb-6">
+            <div className="text-xs font-bold text-muted-foreground/70 uppercase tracking-wider mb-3">Gear Screenshots</div>
+            <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-2">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="aspect-square rounded-xl bg-white/3 border border-primary/10 flex items-center justify-center text-2xl text-muted-foreground/40 hover:border-primary/30 transition-colors cursor-pointer">
+                  📷
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="p-6 border-t border-primary/15 flex gap-3 justify-end">
+          <button 
+            onClick={onDecline}
+            className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-destructive to-red-700 text-white hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(239,68,68,0.4)]"
+          >
+            ✕ Decline
+          </button>
+          <button 
+            onClick={onClose}
+            className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary"
+          >
+            💬 Interview
+          </button>
+          <button 
+            onClick={onAccept}
+            className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-accent to-green-600 text-white shadow-[0_4px_15px_rgba(34,197,94,0.25)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(34,197,94,0.4)]"
+          >
+            ✅ Accept
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function RecruitmentPage({ userRole }: RecruitmentPageProps) {
   const [applications, setApplications] = useState(recruits)
   const [showApplyModal, setShowApplyModal] = useState(false)
   const [showRequirementsModal, setShowRequirementsModal] = useState(false)
+  const [selectedRecruit, setSelectedRecruit] = useState<typeof recruits[0] | null>(null)
+
+  const canManage = canManageRecruitment(userRole)
 
   const handleAccept = (name: string) => {
     setApplications(apps => apps.filter(a => a.name !== name))
+    setSelectedRecruit(null)
+  }
+
+  const handleDecline = (name: string) => {
+    setApplications(apps => apps.filter(a => a.name !== name))
+    setSelectedRecruit(null)
   }
 
   return (
@@ -318,12 +430,14 @@ export function RecruitmentPage() {
           <span className="text-2xl">📋</span> Recruitment
         </h1>
         <div className="flex gap-2.5">
-          <button 
-            onClick={() => setShowRequirementsModal(true)}
-            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary"
-          >
-            Manage Requirements
-          </button>
+          {canManage && (
+            <button 
+              onClick={() => setShowRequirementsModal(true)}
+              className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary"
+            >
+              Manage Requirements
+            </button>
+          )}
           <button 
             onClick={() => setShowApplyModal(true)}
             className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-accent to-green-600 text-white shadow-[0_4px_15px_rgba(34,197,94,0.25)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(34,197,94,0.4)]"
@@ -343,79 +457,111 @@ export function RecruitmentPage() {
         </span>
       </div>
 
-      {/* Application Cards */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-4">
+      {/* Application Cards - Bigger and better organized */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {applications.map(recruit => (
-          <div key={recruit.id} className="bg-card backdrop-blur-xl border border-border rounded-2xl p-5 transition-all duration-200 hover:border-primary/40 hover:-translate-y-0.5">
+          <div key={recruit.id} className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6 transition-all duration-200 hover:border-primary/40 hover:-translate-y-0.5">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-3.5">
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-[22px]">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-[28px]">
                 {recruit.clsIcon}
               </div>
               <div className="flex-1">
-                <div className="text-[15px] font-bold text-foreground">{recruit.name}</div>
-                <div className="text-xs text-muted-foreground">{recruit.cls} · {recruit.role}</div>
+                <div className="text-lg font-bold text-foreground">{recruit.name}</div>
+                <div className="text-sm text-muted-foreground">{recruit.cls} · {recruit.role}</div>
               </div>
-              <div className="text-[11px] text-muted-foreground/70">{recruit.date}</div>
+              <div className="text-xs text-muted-foreground/70">{recruit.date}</div>
             </div>
 
             {/* Application Text */}
-            <div className="text-[13px] text-muted-foreground leading-relaxed mb-3.5">
+            <div className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-2">
               {recruit.app}
             </div>
 
-            {/* Stats */}
-            <div className="flex gap-3 flex-wrap mb-3.5">
-              <div className="bg-white/3 border border-primary/10 rounded-lg py-2 px-3 text-xs">
-                <div className="text-muted-foreground/70 mb-0.5">Gear Score</div>
-                <div className="font-bold text-cyan">{recruit.gs}</div>
+            {/* Stats - Bigger */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="bg-cyan-500/5 border border-cyan-500/15 rounded-xl py-3 px-4 text-center">
+                <div className="font-mono text-lg font-bold text-cyan">{recruit.gs}</div>
+                <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Gear Score</div>
               </div>
-              <div className="bg-white/3 border border-primary/10 rounded-lg py-2 px-3 text-xs">
-                <div className="text-muted-foreground/70 mb-0.5">Experience</div>
-                <div className="font-bold text-foreground">{recruit.raids}</div>
+              <div className="bg-white/3 border border-primary/10 rounded-xl py-3 px-4 text-center">
+                <div className="font-mono text-lg font-bold text-foreground">{recruit.raids}</div>
+                <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Experience</div>
               </div>
-              <div className="bg-white/3 border border-primary/10 rounded-lg py-2 px-3 text-xs">
-                <div className="text-muted-foreground/70 mb-0.5">Att. Rate</div>
-                <div className="font-bold text-accent">{recruit.att}</div>
+              <div className="bg-accent/5 border border-accent/15 rounded-xl py-3 px-4 text-center">
+                <div className="font-mono text-lg font-bold text-accent">{recruit.att}</div>
+                <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Att. Rate</div>
               </div>
             </div>
 
-            {/* Gear Images Placeholder */}
-            <div className="mb-3.5">
-              <div className="text-[10px] text-muted-foreground/60 mb-1.5 uppercase tracking-wider">Gear Screenshots</div>
+            {/* Gear Images Placeholder - Bigger */}
+            <div className="mb-4">
+              <div className="text-[10px] text-muted-foreground/60 mb-2 uppercase tracking-wider font-semibold">Gear Screenshots</div>
               <div className="flex gap-2">
                 {[1, 2].map(i => (
-                  <div key={i} className="w-16 h-16 rounded-lg bg-white/5 border border-primary/10 flex items-center justify-center text-xs text-muted-foreground/40">
+                  <div key={i} className="w-20 h-20 rounded-xl bg-white/5 border border-primary/10 flex items-center justify-center text-lg text-muted-foreground/40">
                     📷
                   </div>
                 ))}
-                <div className="w-16 h-16 rounded-lg bg-white/5 border border-dashed border-primary/20 flex items-center justify-center text-xs text-muted-foreground/40">
+                <div className="w-20 h-20 rounded-xl bg-white/5 border border-dashed border-primary/20 flex items-center justify-center text-sm text-muted-foreground/40 font-mono">
                   +2
                 </div>
               </div>
             </div>
 
-            {/* Actions */}
+            {/* Actions - Bigger buttons */}
             <div className="flex gap-2">
-              <button 
-                onClick={() => handleAccept(recruit.name)}
-                className="inline-flex items-center gap-2 py-2 px-3.5 rounded-lg border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-accent to-green-600 text-white shadow-[0_4px_15px_rgba(34,197,94,0.25)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(34,197,94,0.4)]"
-              >
-                ✅ Accept
-              </button>
-              <button className="inline-flex items-center gap-2 py-2 px-3.5 rounded-lg cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary">
-                💬 Interview
-              </button>
-              <button className="inline-flex items-center gap-2 py-2 px-3.5 rounded-lg cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-destructive to-red-700 text-white hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(239,68,68,0.4)]">
-                ✕ Decline
-              </button>
+              {canManage ? (
+                <>
+                  <button 
+                    onClick={() => handleAccept(recruit.name)}
+                    className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-accent to-green-600 text-white shadow-[0_4px_15px_rgba(34,197,94,0.25)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(34,197,94,0.4)]"
+                  >
+                    ✅ Accept
+                  </button>
+                  <button 
+                    onClick={() => setSelectedRecruit(recruit)}
+                    className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary"
+                  >
+                    👁 View Full
+                  </button>
+                  <button 
+                    onClick={() => handleDecline(recruit.name)}
+                    className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-destructive to-red-700 text-white hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(239,68,68,0.4)]"
+                  >
+                    ✕ Decline
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={() => setSelectedRecruit(recruit)}
+                  className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary"
+                >
+                  👁 View Details
+                </button>
+              )}
             </div>
           </div>
         ))}
       </div>
 
+      {applications.length === 0 && (
+        <div className="text-center py-16">
+          <div className="text-6xl mb-4">📭</div>
+          <div className="text-lg font-bold text-foreground mb-2">No Pending Applications</div>
+          <div className="text-sm text-muted-foreground">New applications will appear here when submitted</div>
+        </div>
+      )}
+
       <ApplyModal isOpen={showApplyModal} onClose={() => setShowApplyModal(false)} />
       <ManageRequirementsModal isOpen={showRequirementsModal} onClose={() => setShowRequirementsModal(false)} />
+      <ViewApplicationModal 
+        recruit={selectedRecruit}
+        isOpen={!!selectedRecruit}
+        onClose={() => setSelectedRecruit(null)}
+        onAccept={() => selectedRecruit && handleAccept(selectedRecruit.name)}
+        onDecline={() => selectedRecruit && handleDecline(selectedRecruit.name)}
+      />
     </div>
   )
 }

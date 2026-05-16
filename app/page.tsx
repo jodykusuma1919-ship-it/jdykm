@@ -17,6 +17,7 @@ import { RecruitmentPage } from '@/components/pages/recruitment'
 import { SettingsPage } from '@/components/pages/settings'
 import { PartiesPage } from '@/components/pages/parties'
 import { BattlefieldPage } from '@/components/pages/battlefield'
+import type { GuildRole } from '@/contexts/auth-context'
 
 export type Page = 'dashboard' | 'members' | 'dkp' | 'my-dkp' | 'loot' | 'events' | 'attendance' | 'analytics' | 'recruitment' | 'settings' | 'parties' | 'battlefield'
 
@@ -36,9 +37,12 @@ const pageLabels: Record<Page, string> = {
 }
 
 function GuildApp() {
+  const { user } = useAuth()
   const [currentPage, setCurrentPage] = useState<Page>('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const userRole = (user?.role || 'Member') as GuildRole
 
   const navigate = (page: Page) => {
     setCurrentPage(page)
@@ -68,6 +72,8 @@ function GuildApp() {
         onNavigate={navigate}
         collapsed={sidebarCollapsed}
         mobileOpen={mobileMenuOpen}
+        userRole={userRole}
+        userName={user?.displayName || 'User'}
       />
 
       <Topbar 
@@ -85,15 +91,15 @@ function GuildApp() {
         `}
       >
         {currentPage === 'dashboard' && <DashboardPage onNavigate={navigate} />}
-        {currentPage === 'members' && <MembersPage />}
+        {currentPage === 'members' && <MembersPage userRole={userRole} />}
         {currentPage === 'dkp' && <DkpPage />}
         {currentPage === 'my-dkp' && <MyDkpPage />}
-        {currentPage === 'loot' && <LootPage onNavigate={navigate} />}
+        {currentPage === 'loot' && <LootPage onNavigate={navigate} userRole={userRole} />}
         {currentPage === 'events' && <EventsPage onNavigate={navigate} />}
         {currentPage === 'attendance' && <AttendancePage />}
         {currentPage === 'analytics' && <AnalyticsPage />}
-        {currentPage === 'recruitment' && <RecruitmentPage />}
-        {currentPage === 'settings' && <SettingsPage onNavigate={navigate} />}
+        {currentPage === 'recruitment' && <RecruitmentPage userRole={userRole} />}
+        {currentPage === 'settings' && <SettingsPage onNavigate={navigate} userRole={userRole} />}
         {currentPage === 'parties' && <PartiesPage />}
         {currentPage === 'battlefield' && <BattlefieldPage />}
       </main>

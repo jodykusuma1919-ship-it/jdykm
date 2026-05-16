@@ -1,12 +1,16 @@
 'use client'
 
 import type { Page } from '@/app/page'
+import type { GuildRole } from '@/lib/roles'
+import { canManageDKP, canManageLoot, canViewAllMembers, canManageRecruitment, canEditBattleSettings, canEditAllSettings, canViewReports, canRecordAttendance } from '@/lib/roles'
 
 interface SidebarProps {
   currentPage: Page
   onNavigate: (page: Page) => void
   collapsed: boolean
   mobileOpen: boolean
+  userRole: GuildRole
+  userName: string
 }
 
 interface NavItemProps {
@@ -17,9 +21,12 @@ interface NavItemProps {
   active: boolean
   onClick: () => void
   collapsed: boolean
+  disabled?: boolean
 }
 
-function NavItem({ icon, label, badge, active, onClick, collapsed }: NavItemProps) {
+function NavItem({ icon, label, badge, active, onClick, collapsed, disabled }: NavItemProps) {
+  if (disabled) return null
+  
   return (
     <button
       onClick={onClick}
@@ -48,7 +55,8 @@ function NavItem({ icon, label, badge, active, onClick, collapsed }: NavItemProp
   )
 }
 
-function SidebarSection({ title, collapsed }: { title: string; collapsed: boolean }) {
+function SidebarSection({ title, collapsed, show = true }: { title: string; collapsed: boolean; show?: boolean }) {
+  if (!show) return null
   return (
     <div className={`px-3 pt-4 pb-2 text-[10px] font-bold tracking-[2.5px] text-muted-foreground/70 uppercase whitespace-nowrap overflow-hidden transition-opacity duration-200 ${collapsed ? 'opacity-0' : ''}`}>
       {title}
@@ -56,7 +64,21 @@ function SidebarSection({ title, collapsed }: { title: string; collapsed: boolea
   )
 }
 
-export function Sidebar({ currentPage, onNavigate, collapsed, mobileOpen }: SidebarProps) {
+export function Sidebar({ currentPage, onNavigate, collapsed, mobileOpen, userRole, userName }: SidebarProps) {
+  // Permission checks
+  const canSeeMembers = canViewAllMembers(userRole)
+  const canSeeDKP = canManageDKP(userRole)
+  const canSeeLoot = canManageLoot(userRole)
+  const canSeeAttendance = canRecordAttendance(userRole)
+  const canSeeAnalytics = canViewReports(userRole)
+  const canSeeRecruitment = canManageRecruitment(userRole)
+  const canSeeParties = canEditBattleSettings(userRole)
+  const canSeeBattlefield = canEditBattleSettings(userRole)
+  const canSeeSettings = canEditAllSettings(userRole) || canEditBattleSettings(userRole)
+
+  // Members can only see: Dashboard, My DKP, Events, Loot (bidding progress)
+  const isMemberOrRecruit = userRole === 'Member' || userRole === 'Recruit'
+
   return (
     <nav 
       className={`
@@ -85,25 +107,25 @@ export function Sidebar({ currentPage, onNavigate, collapsed, mobileOpen }: Side
       {/* Navigation */}
       <SidebarSection title="MAIN" collapsed={collapsed && !mobileOpen} />
       <NavItem page="dashboard" icon="⬡" label="Dashboard" active={currentPage === 'dashboard'} onClick={() => onNavigate('dashboard')} collapsed={collapsed && !mobileOpen} />
-      <NavItem page="members" icon="👥" label="Members" badge={47} active={currentPage === 'members'} onClick={() => onNavigate('members')} collapsed={collapsed && !mobileOpen} />
+      <NavItem page="members" icon="👥" label="Members" badge={canSeeMembers ? 47 : undefined} active={currentPage === 'members'} onClick={() => onNavigate('members')} collapsed={collapsed && !mobileOpen} disabled={!canSeeMembers} />
 
       <SidebarSection title="ECONOMY" collapsed={collapsed && !mobileOpen} />
       <NavItem page="my-dkp" icon="👤" label="My DKP" active={currentPage === 'my-dkp'} onClick={() => onNavigate('my-dkp')} collapsed={collapsed && !mobileOpen} />
-      <NavItem page="dkp" icon="💎" label="DKP" active={currentPage === 'dkp'} onClick={() => onNavigate('dkp')} collapsed={collapsed && !mobileOpen} />
+      <NavItem page="dkp" icon="💎" label="DKP" active={currentPage === 'dkp'} onClick={() => onNavigate('dkp')} collapsed={collapsed && !mobileOpen} disabled={!canSeeDKP} />
       <NavItem page="loot" icon="⚡" label="Loot" badge={3} active={currentPage === 'loot'} onClick={() => onNavigate('loot')} collapsed={collapsed && !mobileOpen} />
 
       <SidebarSection title="GUILD" collapsed={collapsed && !mobileOpen} />
       <NavItem page="events" icon="📅" label="Events" active={currentPage === 'events'} onClick={() => onNavigate('events')} collapsed={collapsed && !mobileOpen} />
-      <NavItem page="attendance" icon="✅" label="Attendance" active={currentPage === 'attendance'} onClick={() => onNavigate('attendance')} collapsed={collapsed && !mobileOpen} />
-      <NavItem page="analytics" icon="📊" label="Analytics" active={currentPage === 'analytics'} onClick={() => onNavigate('analytics')} collapsed={collapsed && !mobileOpen} />
-      <NavItem page="recruitment" icon="📋" label="Recruitment" badge={5} active={currentPage === 'recruitment'} onClick={() => onNavigate('recruitment')} collapsed={collapsed && !mobileOpen} />
+      <NavItem page="attendance" icon="✅" label="Attendance" active={currentPage === 'attendance'} onClick={() => onNavigate('attendance')} collapsed={collapsed && !mobileOpen} disabled={!canSeeAttendance} />
+      <NavItem page="analytics" icon="📊" label="Analytics" active={currentPage === 'analytics'} onClick={() => onNavigate('analytics')} collapsed={collapsed && !mobileOpen} disabled={!canSeeAnalytics} />
+      <NavItem page="recruitment" icon="📋" label="Recruitment" badge={canSeeRecruitment ? 5 : undefined} active={currentPage === 'recruitment'} onClick={() => onNavigate('recruitment')} collapsed={collapsed && !mobileOpen} disabled={!canSeeRecruitment} />
 
-      <SidebarSection title="BATTLE" collapsed={collapsed && !mobileOpen} />
-      <NavItem page="parties" icon="👥" label="Parties" active={currentPage === 'parties'} onClick={() => onNavigate('parties')} collapsed={collapsed && !mobileOpen} />
-      <NavItem page="battlefield" icon="⚔" label="Battlefield" active={currentPage === 'battlefield'} onClick={() => onNavigate('battlefield')} collapsed={collapsed && !mobileOpen} />
+      <SidebarSection title="BATTLE" collapsed={collapsed && !mobileOpen} show={canSeeParties || canSeeBattlefield} />
+      <NavItem page="parties" icon="👥" label="Parties" active={currentPage === 'parties'} onClick={() => onNavigate('parties')} collapsed={collapsed && !mobileOpen} disabled={!canSeeParties} />
+      <NavItem page="battlefield" icon="⚔" label="Battlefield" active={currentPage === 'battlefield'} onClick={() => onNavigate('battlefield')} collapsed={collapsed && !mobileOpen} disabled={!canSeeBattlefield} />
 
-      <SidebarSection title="SYSTEM" collapsed={collapsed && !mobileOpen} />
-      <NavItem page="settings" icon="⚙" label="Settings" active={currentPage === 'settings'} onClick={() => onNavigate('settings')} collapsed={collapsed && !mobileOpen} />
+      <SidebarSection title="SYSTEM" collapsed={collapsed && !mobileOpen} show={canSeeSettings} />
+      <NavItem page="settings" icon="⚙" label="Settings" active={currentPage === 'settings'} onClick={() => onNavigate('settings')} collapsed={collapsed && !mobileOpen} disabled={!canSeeSettings} />
 
       {/* User */}
       <div className="mt-auto border-t border-primary/15 p-2">
@@ -113,8 +135,8 @@ export function Sidebar({ currentPage, onNavigate, collapsed, mobileOpen }: Side
             <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-accent rounded-full border-2 border-[#0d1424]" />
           </div>
           <div className={`overflow-hidden whitespace-nowrap transition-all duration-200 ${collapsed ? 'hidden' : ''} ${mobileOpen ? 'max-md:block' : ''}`}>
-            <div className="text-[13px] font-bold text-foreground">Thalderin</div>
-            <div className="text-[11px] text-primary-light font-medium">Guild Master</div>
+            <div className="text-[13px] font-bold text-foreground">{userName}</div>
+            <div className="text-[11px] text-primary-light font-medium">{userRole}</div>
           </div>
         </div>
       </div>

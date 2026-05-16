@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { CURRENT_USER_ROLE, getRoleColor } from '@/lib/roles'
+import { getRoleColor } from '@/lib/roles'
 
 // Sample data for current user
 const currentUserData = {
   name: 'Thalderin',
-  role: CURRENT_USER_ROLE,
+  role: 'Guild Master' as const,
   class: { icon: '🧙', name: 'Mage' },
   dkp: 2450,
   weeklyEarned: 320,

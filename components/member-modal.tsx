@@ -134,36 +134,51 @@ function EditRoleModal({
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between bg-white/3 rounded-lg p-3">
                 <span className="text-sm text-foreground">🃏 Fragment Card</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={bidLimits.fragmentCard}
-                  onChange={e => setBidLimits(prev => ({ ...prev, fragmentCard: parseInt(e.target.value) || 0 }))}
-                  className="w-16 bg-white/4 border border-primary/20 rounded-lg py-1.5 px-2 text-center text-foreground text-sm font-mono font-bold outline-none focus:border-primary"
-                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBidLimits(prev => ({ ...prev, fragmentCard: Math.max(0, prev.fragmentCard - 1) }))}
+                    className="w-8 h-8 rounded-lg border border-primary/30 bg-primary/10 text-foreground font-bold flex items-center justify-center transition-all cursor-pointer hover:bg-primary/30 hover:border-primary"
+                  >−</button>
+                  <span className="font-mono text-lg font-bold text-primary-light min-w-8 text-center">{bidLimits.fragmentCard}</span>
+                  <button
+                    type="button"
+                    onClick={() => setBidLimits(prev => ({ ...prev, fragmentCard: Math.min(10, prev.fragmentCard + 1) }))}
+                    className="w-8 h-8 rounded-lg border border-primary/30 bg-primary/10 text-foreground font-bold flex items-center justify-center transition-all cursor-pointer hover:bg-primary/30 hover:border-primary"
+                  >+</button>
+                </div>
               </div>
               <div className="flex items-center justify-between bg-white/3 rounded-lg p-3">
                 <span className="text-sm text-foreground">🔮 Timespace</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={bidLimits.timespace}
-                  onChange={e => setBidLimits(prev => ({ ...prev, timespace: parseInt(e.target.value) || 0 }))}
-                  className="w-16 bg-white/4 border border-primary/20 rounded-lg py-1.5 px-2 text-center text-foreground text-sm font-mono font-bold outline-none focus:border-primary"
-                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBidLimits(prev => ({ ...prev, timespace: Math.max(0, prev.timespace - 1) }))}
+                    className="w-8 h-8 rounded-lg border border-primary/30 bg-primary/10 text-foreground font-bold flex items-center justify-center transition-all cursor-pointer hover:bg-primary/30 hover:border-primary"
+                  >−</button>
+                  <span className="font-mono text-lg font-bold text-primary-light min-w-8 text-center">{bidLimits.timespace}</span>
+                  <button
+                    type="button"
+                    onClick={() => setBidLimits(prev => ({ ...prev, timespace: Math.min(10, prev.timespace + 1) }))}
+                    className="w-8 h-8 rounded-lg border border-primary/30 bg-primary/10 text-foreground font-bold flex items-center justify-center transition-all cursor-pointer hover:bg-primary/30 hover:border-primary"
+                  >+</button>
+                </div>
               </div>
               <div className="flex items-center justify-between bg-white/3 rounded-lg p-3">
                 <span className="text-sm text-foreground">⚡ LND</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={bidLimits.lnd}
-                  onChange={e => setBidLimits(prev => ({ ...prev, lnd: parseInt(e.target.value) || 0 }))}
-                  className="w-16 bg-white/4 border border-primary/20 rounded-lg py-1.5 px-2 text-center text-foreground text-sm font-mono font-bold outline-none focus:border-primary"
-                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBidLimits(prev => ({ ...prev, lnd: Math.max(0, prev.lnd - 1) }))}
+                    className="w-8 h-8 rounded-lg border border-primary/30 bg-primary/10 text-foreground font-bold flex items-center justify-center transition-all cursor-pointer hover:bg-primary/30 hover:border-primary"
+                  >−</button>
+                  <span className="font-mono text-lg font-bold text-primary-light min-w-8 text-center">{bidLimits.lnd}</span>
+                  <button
+                    type="button"
+                    onClick={() => setBidLimits(prev => ({ ...prev, lnd: Math.min(10, prev.lnd + 1) }))}
+                    className="w-8 h-8 rounded-lg border border-primary/30 bg-primary/10 text-foreground font-bold flex items-center justify-center transition-all cursor-pointer hover:bg-primary/30 hover:border-primary"
+                  >+</button>
+                </div>
               </div>
             </div>
           </div>

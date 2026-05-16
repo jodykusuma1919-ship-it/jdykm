@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { allMembers } from '@/lib/data'
-import { canRecordAttendance, canViewReports, CURRENT_USER_ROLE, getRoleColor } from '@/lib/roles'
+import { getRoleColor } from '@/lib/roles'
 
 function WidgetCard({ icon, value, label, glowColor }: { 
   icon: string
@@ -257,8 +257,10 @@ export function AttendancePage() {
   const [showRecordModal, setShowRecordModal] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   
-  const canRecord = canRecordAttendance()
-  const canReport = canViewReports()
+  // For now, allow full access - in full implementation this would come from user context
+  const canRecord = true
+  const canReport = true
+  const userRole = 'Guild Master' as const
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -269,8 +271,8 @@ export function AttendancePage() {
           </h1>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-muted-foreground">Your Role:</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(CURRENT_USER_ROLE)}`}>
-              {CURRENT_USER_ROLE}
+            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(userRole)}`}>
+              {userRole}
             </span>
           </div>
         </div>

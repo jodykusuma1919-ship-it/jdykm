@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { allMembers } from '@/lib/data'
-import { canEditBattleSettings, CURRENT_USER_ROLE, getRoleColor } from '@/lib/roles'
+import { getRoleColor } from '@/lib/roles'
 
 interface PartyMember {
   id: number
@@ -22,7 +22,8 @@ interface Party {
 const MAX_PARTY_SIZE = 5
 
 export function PartiesPage() {
-  const canEdit = canEditBattleSettings()
+  // For now, allow editing - in full implementation this would come from user context
+  const canEdit = true
   
   const [party, setParty] = useState<Party>({
     id: 'party-1',

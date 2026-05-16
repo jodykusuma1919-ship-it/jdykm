@@ -4,6 +4,12 @@ import { useState, useMemo } from 'react'
 import { allMembers, roleColors, roleIcons, classes, roles } from '@/lib/data'
 import type { Member } from '@/lib/data'
 import { MemberModal } from '@/components/member-modal'
+import { canViewAllMembers, canManageDKP } from '@/lib/roles'
+import type { GuildRole } from '@/lib/roles'
+
+interface MembersPageProps {
+  userRole: GuildRole
+}
 
 function AddMemberModal({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: () => void; onAdd: (member: Partial<Member>) => void }) {
   const [name, setName] = useState('')
@@ -165,7 +171,8 @@ function AttendanceBar({ value }: { value: number }) {
   )
 }
 
-export function MembersPage() {
+export function MembersPage({ userRole }: MembersPageProps) {
+  const canManage = canManageDKP(userRole)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -268,15 +275,19 @@ export function MembersPage() {
           <span className="text-2xl">👥</span> Guild Members
         </h2>
         <div className="flex gap-2.5">
-          <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary">
-            📤 Export
-          </button>
-          <button 
-            onClick={() => setShowAddMember(true)}
-            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
-          >
-            + Add Member
-          </button>
+          {canManage && (
+            <>
+              <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary">
+                📤 Export
+              </button>
+              <button 
+                onClick={() => setShowAddMember(true)}
+                className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+              >
+                + Add Member
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -396,9 +407,13 @@ export function MembersPage() {
                   <td className="p-3.5 px-4 border-b border-primary/6 text-sm font-medium align-middle">
                     <div className="flex gap-1.5 items-center" onClick={e => e.stopPropagation()}>
                       <button onClick={() => setSelectedMember(member)} className="w-[30px] h-[30px] rounded-[7px] border-none cursor-pointer inline-flex items-center justify-center text-[13px] transition-all duration-150 bg-primary/20 text-primary-light hover:bg-primary/40 hover:shadow-[0_0_10px_rgba(124,58,237,0.3)]" title="View">👁</button>
-                      <button className="w-[30px] h-[30px] rounded-[7px] border-none cursor-pointer inline-flex items-center justify-center text-[13px] transition-all duration-150 bg-blue/20 text-blue hover:bg-blue/35" title="Edit">✏</button>
-                      <button className="w-[30px] h-[30px] rounded-[7px] border-none cursor-pointer inline-flex items-center justify-center text-[13px] transition-all duration-150 bg-gold/20 text-gold hover:bg-gold/35" title="DKP">💎</button>
-                      <button className="w-[30px] h-[30px] rounded-[7px] border-none cursor-pointer inline-flex items-center justify-center text-[13px] transition-all duration-150 bg-destructive/15 text-red-400 hover:bg-destructive/30" title="More">⋮</button>
+                      {canManage && (
+                        <>
+                          <button className="w-[30px] h-[30px] rounded-[7px] border-none cursor-pointer inline-flex items-center justify-center text-[13px] transition-all duration-150 bg-blue/20 text-blue hover:bg-blue/35" title="Edit">✏</button>
+                          <button className="w-[30px] h-[30px] rounded-[7px] border-none cursor-pointer inline-flex items-center justify-center text-[13px] transition-all duration-150 bg-gold/20 text-gold hover:bg-gold/35" title="DKP">💎</button>
+                          <button className="w-[30px] h-[30px] rounded-[7px] border-none cursor-pointer inline-flex items-center justify-center text-[13px] transition-all duration-150 bg-destructive/15 text-red-400 hover:bg-destructive/30" title="More">⋮</button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
