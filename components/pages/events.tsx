@@ -85,6 +85,7 @@ function ScheduleEventModal({
   const [eventTime, setEventTime] = useState('')
   const [eventDetails, setEventDetails] = useState('')
   const [dkpReward, setDkpReward] = useState('100')
+  const [maxAttendance, setMaxAttendance] = useState(25)
 
   if (!isOpen) return null
 
@@ -99,7 +100,7 @@ function ScheduleEventModal({
       date: new Date(year, month - 1, day),
       time: eventTime,
       details: eventDetails || 'No details provided',
-      rsvp: { confirmed: 0, total: 25 },
+      rsvp: { confirmed: 0, total: maxAttendance },
       dkpReward: parseInt(dkpReward) || 0,
       attendees: [],
     }
@@ -112,6 +113,7 @@ function ScheduleEventModal({
     setEventTime('')
     setEventDetails('')
     setDkpReward('100')
+    setMaxAttendance(25)
   }
 
   return (
@@ -183,15 +185,37 @@ function ScheduleEventModal({
             />
           </div>
           <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Max Attendance (1-100)</label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setMaxAttendance(prev => Math.max(1, prev - 1))}
+                className="w-10 h-10 rounded-xl border border-primary/30 bg-primary/10 text-foreground font-bold flex items-center justify-center transition-all cursor-pointer hover:bg-primary/30 hover:border-primary text-lg"
+              >-</button>
+              <span className="font-mono text-xl font-bold text-primary-light min-w-12 text-center">{maxAttendance}</span>
+              <button
+                type="button"
+                onClick={() => setMaxAttendance(prev => Math.min(100, prev + 1))}
+                className="w-10 h-10 rounded-xl border border-primary/30 bg-primary/10 text-foreground font-bold flex items-center justify-center transition-all cursor-pointer hover:bg-primary/30 hover:border-primary text-lg"
+              >+</button>
+            </div>
+          </div>
+          <div>
             <label className="block text-xs font-bold text-muted-foreground mb-1.5">DKP Reward for Attendance</label>
-            <input
-              type="number"
-              value={dkpReward}
-              onChange={e => setDkpReward(e.target.value)}
-              placeholder="100"
-              min="0"
-              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
-            />
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setDkpReward(prev => String(Math.max(0, parseInt(prev) - 10)))}
+                className="w-10 h-10 rounded-xl border border-gold/30 bg-gold/10 text-foreground font-bold flex items-center justify-center transition-all cursor-pointer hover:bg-gold/30 hover:border-gold text-lg"
+              >-</button>
+              <span className="font-mono text-xl font-bold text-gold min-w-16 text-center">{dkpReward}</span>
+              <button
+                type="button"
+                onClick={() => setDkpReward(prev => String(Math.min(9999, parseInt(prev) + 10)))}
+                className="w-10 h-10 rounded-xl border border-gold/30 bg-gold/10 text-foreground font-bold flex items-center justify-center transition-all cursor-pointer hover:bg-gold/30 hover:border-gold text-lg"
+              >+</button>
+            </div>
+            <div className="text-[10px] text-muted-foreground/70 mt-1">Increments of 10</div>
           </div>
           <div className="flex gap-3 mt-2">
             <button

@@ -326,10 +326,6 @@ export function BattlefieldPage() {
             <span className="text-2xl">⚔</span> Battlefield Setup
           </h1>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-muted-foreground">Your Role:</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(CURRENT_USER_ROLE)}`}>
-              {CURRENT_USER_ROLE}
-            </span>
             {canEdit ? (
               <span className="text-[10px] text-accent">Can Edit</span>
             ) : (
