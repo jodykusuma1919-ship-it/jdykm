@@ -327,7 +327,7 @@ export function MemberModal({ member, onClose, onUpdateMember }: MemberModalProp
           {activeTab === 'screenshots' && (
             <div className="animate-in fade-in duration-200">
               <p className="text-xs text-muted-foreground mb-4">Upload screenshots to verify your character stats. These help officers verify your progression.</p>
-              <div className="grid grid-cols-3 gap-4 max-[600px]:grid-cols-1">
+              <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
                 <ScreenshotUpload
                   label="Gearscore"
                   description="Screenshot showing your GS number"
@@ -335,16 +335,24 @@ export function MemberModal({ member, onClose, onUpdateMember }: MemberModalProp
                   onUpload={(url) => handleScreenshotUpload('gearscore', url)}
                 />
                 <ScreenshotUpload
-                  label="Feather (12 Tabs)"
-                  description="All 12 feather tabs"
-                  imageUrl={localMember.screenshots?.feather}
-                  onUpload={(url) => handleScreenshotUpload('feather', url)}
-                />
-                <ScreenshotUpload
                   label="Medal"
                   description="Your medal collection"
                   imageUrl={localMember.screenshots?.medal}
                   onUpload={(url) => handleScreenshotUpload('medal', url)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1 mt-4">
+                <ScreenshotUpload
+                  label="Attack Feather (5 Tabs)"
+                  description="All 5 attack feather tabs"
+                  imageUrl={localMember.screenshots?.attackFeather}
+                  onUpload={(url) => handleScreenshotUpload('attackFeather', url)}
+                />
+                <ScreenshotUpload
+                  label="Defend Feather (5 Tabs)"
+                  description="All 5 defend feather tabs"
+                  imageUrl={localMember.screenshots?.defendFeather}
+                  onUpload={(url) => handleScreenshotUpload('defendFeather', url)}
                 />
               </div>
             </div>

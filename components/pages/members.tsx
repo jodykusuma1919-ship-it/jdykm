@@ -1,9 +1,140 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { allMembers, roleColors, roleIcons } from '@/lib/data'
+import { allMembers, roleColors, roleIcons, classes, roles } from '@/lib/data'
 import type { Member } from '@/lib/data'
 import { MemberModal } from '@/components/member-modal'
+
+function AddMemberModal({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: () => void; onAdd: (member: Partial<Member>) => void }) {
+  const [name, setName] = useState('')
+  const [selectedClass, setSelectedClass] = useState(classes[0])
+  const [selectedRole, setSelectedRole] = useState('Member')
+  const [discord, setDiscord] = useState('')
+  const [gs, setGs] = useState(480)
+
+  if (!isOpen) return null
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onAdd({
+      name,
+      class: selectedClass,
+      role: selectedRole,
+      discord: discord || `@${name.toLowerCase()}`,
+      gs,
+      status: 'Offline',
+      dkp: 0,
+      att: 0,
+      joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      lastOnline: 'Never',
+      totalRaids: 0,
+      bidLimits: { fragmentCard: 2, timespace: 2, lnd: 2 },
+      screenshots: {},
+    })
+    setName('')
+    setSelectedClass(classes[0])
+    setSelectedRole('Member')
+    setDiscord('')
+    setGs(480)
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1001] p-4" onClick={onClose}>
+      <div 
+        className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 border-b border-primary/15">
+          <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+            + Add New Member
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">Add a new member to the guild</p>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Character Name *</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              placeholder="Enter character name"
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 placeholder:text-muted-foreground/60 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1.5">Class</label>
+              <select
+                value={selectedClass.name}
+                onChange={e => setSelectedClass(classes.find(c => c.name === e.target.value) || classes[0])}
+                className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+              >
+                {classes.map(cls => (
+                  <option key={cls.name} value={cls.name}>{cls.icon} {cls.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1.5">Role</label>
+              <select
+                value={selectedRole}
+                onChange={e => setSelectedRole(e.target.value)}
+                className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+              >
+                {roles.map(role => (
+                  <option key={role} value={role}>{roleIcons[role]} {role}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1.5">Discord</label>
+              <input
+                type="text"
+                value={discord}
+                onChange={e => setDiscord(e.target.value)}
+                placeholder="@username"
+                className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 placeholder:text-muted-foreground/60 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1.5">Gear Score</label>
+              <input
+                type="number"
+                value={gs}
+                onChange={e => setGs(parseInt(e.target.value) || 0)}
+                min={0}
+                max={999}
+                className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans font-mono outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-transparent text-muted-foreground border border-white/15 hover:bg-white/5 hover:border-white/25"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+            >
+              Add Member
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
 
 function StatusBadge({ status }: { status: Member['status'] }) {
   const styles: Record<string, string> = {
@@ -41,10 +172,12 @@ export function MembersPage() {
   const [sortBy, setSortBy] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [showAddMember, setShowAddMember] = useState(false)
+  const [members, setMembers] = useState(allMembers)
   const perPage = 12
 
   const filtered = useMemo(() => {
-    let result = allMembers.filter(m => {
+    let result = members.filter(m => {
       if (search && !m.name.toLowerCase().includes(search.toLowerCase()) && !m.class.name.toLowerCase().includes(search.toLowerCase())) return false
       if (roleFilter && m.role !== roleFilter) return false
       if (statusFilter && m.status !== statusFilter) return false
@@ -56,10 +189,30 @@ export function MembersPage() {
     else if (sortBy === 'status') result = [...result].sort((a, b) => ['Online', 'In Raid', 'AFK', 'Offline'].indexOf(a.status) - ['Online', 'In Raid', 'AFK', 'Offline'].indexOf(b.status))
 
     return result
-  }, [search, roleFilter, statusFilter, sortBy])
+  }, [search, roleFilter, statusFilter, sortBy, members])
 
   const totalPages = Math.ceil(filtered.length / perPage)
   const paginatedMembers = filtered.slice((currentPage - 1) * perPage, currentPage * perPage)
+
+  const handleAddMember = (newMember: Partial<Member>) => {
+    const member: Member = {
+      id: members.length + 1,
+      name: newMember.name || 'Unknown',
+      class: newMember.class || classes[0],
+      role: newMember.role || 'Member',
+      status: newMember.status || 'Offline',
+      dkp: newMember.dkp || 0,
+      att: newMember.att || 0,
+      joinDate: newMember.joinDate || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      lastOnline: newMember.lastOnline || 'Never',
+      gs: newMember.gs || 480,
+      discord: newMember.discord || `@${(newMember.name || 'unknown').toLowerCase()}`,
+      totalRaids: newMember.totalRaids || 0,
+      bidLimits: newMember.bidLimits || { fragmentCard: 2, timespace: 2, lnd: 2 },
+      screenshots: newMember.screenshots || {},
+    }
+    setMembers(prev => [member, ...prev])
+  }
 
   const avatarStatusClass = (status: Member['status']) => {
     const map: Record<string, string> = {
@@ -118,7 +271,10 @@ export function MembersPage() {
           <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-primary-light border border-primary/40 hover:bg-primary/15 hover:border-primary">
             📤 Export
           </button>
-          <button className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]">
+          <button 
+            onClick={() => setShowAddMember(true)}
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+          >
             + Add Member
           </button>
         </div>
@@ -284,6 +440,13 @@ export function MembersPage() {
       {selectedMember && (
         <MemberModal member={selectedMember} onClose={() => setSelectedMember(null)} />
       )}
+
+      {/* Add Member Modal */}
+      <AddMemberModal 
+        isOpen={showAddMember} 
+        onClose={() => setShowAddMember(false)} 
+        onAdd={handleAddMember}
+      />
     </div>
   )
 }

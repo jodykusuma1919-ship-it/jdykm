@@ -13,7 +13,8 @@ export interface MemberBidLimits {
 
 export interface MemberScreenshots {
   gearscore?: string
-  feather?: string
+  attackFeather?: string
+  defendFeather?: string
   medal?: string
 }
 
