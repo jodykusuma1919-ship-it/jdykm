@@ -40,6 +40,14 @@ export interface LootInventory {
   lnd: { current: number; total: number }
 }
 
+export interface DiscordSettings {
+  webhookUrl: string
+  eventChannelId: string
+  botToken: string
+  guildId: string
+  isConnected: boolean
+}
+
 export interface GuildSettings {
   selectedPreset: string
   bidLimits: BidLimits
@@ -47,6 +55,7 @@ export interface GuildSettings {
   lootRewards: LootRewards
   lootInventory: LootInventory
   maxDkpPerBid: number
+  discord: DiscordSettings
   lootRequests: LootRequest[]
   approvedLoot: LootRequest[]
 }
@@ -58,6 +67,7 @@ interface GuildSettingsContextType {
   updateLootRewards: (rewards: LootRewards) => void
   updateLootInventory: (inventory: LootInventory) => void
   updateMaxDkpPerBid: (maxDkp: number) => void
+  updateDiscordSettings: (discord: Partial<DiscordSettings>) => void
   updatePreset: (preset: string) => void
   addLootRequest: (request: Omit<LootRequest, 'id' | 'status' | 'requestedAt'>) => void
   processLootRequest: (requestId: string, status: 'approved' | 'declined', processedBy: string) => void
@@ -83,6 +93,13 @@ const defaultSettings: GuildSettings = {
     lnd: { current: 83, total: 150 },
   },
   maxDkpPerBid: 50,
+  discord: {
+    webhookUrl: '',
+    eventChannelId: '',
+    botToken: '',
+    guildId: '',
+    isConnected: false,
+  },
   lootRequests: [],
   approvedLoot: [],
 }
@@ -116,6 +133,7 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
           lootRewards: parsed.lootRewards || defaultSettings.lootRewards,
           lootInventory: parsed.lootInventory || defaultSettings.lootInventory,
           maxDkpPerBid: parsed.maxDkpPerBid ?? defaultSettings.maxDkpPerBid,
+          discord: parsed.discord || defaultSettings.discord,
           lootRequests: parsed.lootRequests || [],
           approvedLoot: parsed.approvedLoot || [],
         })
@@ -162,6 +180,17 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
   const updateMaxDkpPerBid = (maxDkp: number) => {
     setSettings(prev => {
       const newSettings = { ...prev, maxDkpPerBid: maxDkp }
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(newSettings))
+      return newSettings
+    })
+  }
+
+  const updateDiscordSettings = (discord: Partial<DiscordSettings>) => {
+    setSettings(prev => {
+      const newSettings = { 
+        ...prev, 
+        discord: { ...prev.discord, ...discord } 
+      }
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(newSettings))
       return newSettings
     })
@@ -241,6 +270,7 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
       updateLootRewards,
       updateLootInventory,
       updateMaxDkpPerBid,
+      updateDiscordSettings,
       updatePreset,
       addLootRequest,
       processLootRequest,

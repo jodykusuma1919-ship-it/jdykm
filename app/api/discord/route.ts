@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 
-const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || ''
-
 interface EventPayload {
   name: string
   type: string
@@ -10,11 +8,15 @@ interface EventPayload {
   details: string
   dkpReward: number
   maxAttendance: number
+  webhookUrl?: string // Optional - can be passed from client settings
 }
 
 export async function POST(request: Request) {
   try {
     const event: EventPayload = await request.json()
+    
+    // Use webhook URL from request body or fall back to env variable
+    const webhookUrl = event.webhookUrl || process.env.DISCORD_WEBHOOK_URL || ''
 
     // Format the date nicely
     const eventDate = new Date(event.date)
@@ -68,8 +70,8 @@ export async function POST(request: Request) {
     }
 
     // Send to Discord webhook if configured
-    if (DISCORD_WEBHOOK_URL) {
-      const response = await fetch(DISCORD_WEBHOOK_URL, {
+    if (webhookUrl) {
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
