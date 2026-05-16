@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { AuthProvider, useAuth } from '@/contexts/auth-context'
+import { LoginPage } from '@/components/login-page'
 import { Sidebar } from '@/components/sidebar'
 import { Topbar } from '@/components/topbar'
 import { DashboardPage } from '@/components/pages/dashboard'
@@ -33,7 +35,7 @@ const pageLabels: Record<Page, string> = {
   battlefield: 'Battlefield Setup',
 }
 
-export default function Home() {
+function GuildApp() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -96,5 +98,34 @@ export default function Home() {
         {currentPage === 'battlefield' && <BattlefieldPage />}
       </main>
     </div>
+  )
+}
+
+function AuthenticatedApp() {
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="relative z-[1] flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <LoginPage />
+  }
+
+  return <GuildApp />
+}
+
+export default function Home() {
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
   )
 }

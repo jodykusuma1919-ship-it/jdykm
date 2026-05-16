@@ -1,6 +1,8 @@
 'use client'
 
 import type { Page } from '@/app/page'
+import { useAuth } from '@/contexts/auth-context'
+import { LogOut, User } from 'lucide-react'
 
 interface TopbarProps {
   breadcrumb: string
@@ -10,6 +12,8 @@ interface TopbarProps {
 }
 
 export function Topbar({ breadcrumb, collapsed, onToggleSidebar, onNavigate }: TopbarProps) {
+  const { user, logout } = useAuth()
+
   return (
     <header 
       className={`
@@ -74,6 +78,26 @@ export function Topbar({ breadcrumb, collapsed, onToggleSidebar, onNavigate }: T
         >
           ⚙
         </button>
+
+        {/* User Menu */}
+        <div className="flex items-center gap-2 ml-2 pl-3 border-l border-primary/20">
+          <div className="flex items-center gap-2 py-1.5 px-3 bg-primary/8 border border-primary/25 rounded-xl">
+            <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
+              <User className="w-4 h-4 text-primary-light" />
+            </div>
+            <div className="flex flex-col max-md:hidden">
+              <span className="text-xs font-semibold text-foreground leading-tight">{user?.displayName}</span>
+              <span className="text-[10px] text-muted-foreground leading-tight capitalize">{user?.role}</span>
+            </div>
+          </div>
+          <button 
+            onClick={logout}
+            className="w-[38px] h-[38px] rounded-xl bg-destructive/10 border border-destructive/25 flex items-center justify-center cursor-pointer transition-all duration-200 text-destructive hover:bg-destructive/20 hover:border-destructive hover:shadow-[0_0_10px_rgba(239,68,68,0.3)]"
+            title="Logout"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </header>
   )
