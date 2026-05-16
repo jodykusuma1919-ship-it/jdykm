@@ -245,10 +245,27 @@ export function GuildSettingsProvider({ children }: { children: ReactNode }) {
         ? [...prev.approvedLoot, processedRequest]
         : prev.approvedLoot
 
+      // Reduce inventory when a request is approved
+      let updatedInventory = prev.lootInventory
+      if (status === 'approved') {
+        const itemKey = request.itemType === 'Fragment Card' ? 'fragmentCard' 
+          : request.itemType === 'Timespace' ? 'timespace' 
+          : 'lnd'
+        
+        updatedInventory = {
+          ...prev.lootInventory,
+          [itemKey]: {
+            ...prev.lootInventory[itemKey],
+            current: Math.max(0, prev.lootInventory[itemKey].current - request.quantity)
+          }
+        }
+      }
+
       const newSettings = {
         ...prev,
         lootRequests: updatedRequests,
         approvedLoot: updatedApprovedLoot,
+        lootInventory: updatedInventory,
       }
 
       // Auto-save when processing request
