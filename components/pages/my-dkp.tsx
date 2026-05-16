@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { getRoleColor } from '@/lib/roles'
 import { useGuildSettings, type LootRequest } from '@/contexts/guild-settings-context'
-import type { MemberScreenshots } from '@/lib/data'
 
 // Sample data for current user
 const currentUserData = {
@@ -28,7 +27,6 @@ const currentUserData = {
     timespace: 50,
     lnd: 50,
   },
-  screenshots: {} as MemberScreenshots,
 }
 
 const dkpHistory = [
@@ -250,95 +248,12 @@ function PendingRequestCard({ request }: { request: LootRequest }) {
   )
 }
 
-function ScreenshotUploadCard({ 
-  label, 
-  icon,
-  description, 
-  imageUrl, 
-  onUpload,
-  color
-}: { 
-  label: string
-  icon: string
-  description: string
-  imageUrl?: string
-  onUpload: (url: string) => void
-  color: string
-}) {
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const url = URL.createObjectURL(file)
-      onUpload(url)
-    }
-  }
-
-  return (
-    <div className={`bg-card backdrop-blur-xl border rounded-2xl p-4 ${color}`}>
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xl">{icon}</span>
-        <div>
-          <div className="text-sm font-bold text-foreground">{label}</div>
-          <div className="text-[10px] text-muted-foreground/70">{description}</div>
-        </div>
-      </div>
-      {imageUrl ? (
-        <div className="relative group">
-          <img src={imageUrl} alt={label} className="w-full h-32 object-cover rounded-xl border border-white/10" />
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
-            <button 
-              onClick={() => window.open(imageUrl, '_blank')}
-              className="py-1.5 px-3 rounded-lg text-xs font-bold bg-white/20 text-white hover:bg-white/30 transition-all"
-            >
-              View
-            </button>
-            <button 
-              onClick={() => inputRef.current?.click()}
-              className="py-1.5 px-3 rounded-lg text-xs font-bold bg-primary/80 text-white hover:bg-primary transition-all"
-            >
-              Replace
-            </button>
-          </div>
-          <span className="absolute top-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded bg-accent/80 text-white">Uploaded</span>
-        </div>
-      ) : (
-        <button 
-          onClick={() => inputRef.current?.click()}
-          className="w-full h-28 border-2 border-dashed border-primary/25 rounded-xl flex flex-col items-center justify-center gap-2 text-muted-foreground/60 hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
-        >
-          <span className="text-2xl">📷</span>
-          <span className="text-xs font-semibold">Click to Upload</span>
-        </button>
-      )}
-      <input 
-        ref={inputRef}
-        type="file" 
-        accept="image/*" 
-        className="hidden" 
-        onChange={handleFileChange}
-      />
-    </div>
-  )
-}
-
 export function MyDkpPage() {
   const { settings, addLootRequest } = useGuildSettings()
   const [requestModal, setRequestModal] = useState<{ open: boolean; type: 'Fragment Card' | 'LND' | 'Timespace' }>({ open: false, type: 'Fragment Card' })
-  const [screenshots, setScreenshots] = useState<MemberScreenshots>(currentUserData.screenshots)
 
   const openRequest = (type: 'Fragment Card' | 'LND' | 'Timespace') => {
     setRequestModal({ open: true, type })
-  }
-
-  const handleScreenshotUpload = (type: keyof MemberScreenshots, url: string) => {
-    setScreenshots(prev => ({
-      ...prev,
-      [type]: url,
-      uploadedAt: new Date().toISOString()
-    }))
-    // In a real app, this would save to the database
   }
 
   const getDkpCost = (type: 'Fragment Card' | 'LND' | 'Timespace') => {
@@ -414,79 +329,6 @@ export function MyDkpPage() {
           label="Attendance Rate" 
           color="bg-primary" 
         />
-      </div>
-
-      {/* My Character Stats Section */}
-      <div className="mb-7">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-            My Character Stats
-            <span className="text-xs font-normal text-muted-foreground">(Upload screenshots for verification)</span>
-          </h2>
-          {screenshots.uploadedAt && (
-            <span className="text-[10px] text-muted-foreground">
-              Last updated: {new Date(screenshots.uploadedAt).toLocaleDateString()}
-            </span>
-          )}
-        </div>
-        <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
-          <ScreenshotUploadCard
-            label="Gear Score"
-            icon="GS"
-            description="Screenshot showing your GS"
-            imageUrl={screenshots.gearscore}
-            onUpload={(url) => handleScreenshotUpload('gearscore', url)}
-            color="border-cyan-500/25"
-          />
-          <ScreenshotUploadCard
-            label="PVP Stats"
-            icon="PVP"
-            description="Your PVP ranking and stats"
-            imageUrl={screenshots.pvpStats}
-            onUpload={(url) => handleScreenshotUpload('pvpStats', url)}
-            color="border-destructive/25"
-          />
-          <ScreenshotUploadCard
-            label="Medal Collection"
-            icon="M"
-            description="Your medal collection"
-            imageUrl={screenshots.medal}
-            onUpload={(url) => handleScreenshotUpload('medal', url)}
-            color="border-gold/25"
-          />
-          <ScreenshotUploadCard
-            label="Attack Feather"
-            icon="ATK"
-            description="All 5 attack feather tabs"
-            imageUrl={screenshots.attackFeather}
-            onUpload={(url) => handleScreenshotUpload('attackFeather', url)}
-            color="border-orange-500/25"
-          />
-          <ScreenshotUploadCard
-            label="Defend Feather"
-            icon="DEF"
-            description="All 5 defend feather tabs"
-            imageUrl={screenshots.defendFeather}
-            onUpload={(url) => handleScreenshotUpload('defendFeather', url)}
-            color="border-blue-500/25"
-          />
-          <ScreenshotUploadCard
-            label="Gear / Equipment"
-            icon="EQ"
-            description="Your equipped gear"
-            imageUrl={screenshots.gear}
-            onUpload={(url) => handleScreenshotUpload('gear', url)}
-            color="border-purple-500/25"
-          />
-        </div>
-        <div className="mt-3 p-3 bg-primary/5 border border-primary/15 rounded-xl">
-          <div className="flex items-start gap-2">
-            <span className="text-sm">Info:</span>
-            <p className="text-xs text-muted-foreground">
-              Upload screenshots of your character stats for guild leadership to verify. These help officers track member progression and assign appropriate roles. All members are required to keep their stats updated.
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Pending Requests Section */}
