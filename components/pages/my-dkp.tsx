@@ -3,39 +3,18 @@
 import { useState } from 'react'
 import { getRoleColor } from '@/lib/roles'
 import { useGuildSettings, type LootRequest } from '@/contexts/guild-settings-context'
+import { useMemberDkp } from '@/contexts/member-dkp-context'
 
-// Sample data for current user
-const currentUserData = {
+// Static user profile data (DKP values come from context)
+const currentUserProfile = {
   id: 1,
   name: 'Thalderin',
   role: 'Guild Master' as const,
   class: { icon: '🧙', name: 'Mage' },
-  dkp: 2450,
-  weeklyEarned: 320,
-  weeklySpent: 150,
-  attendance: 94,
   gs: 523000,
-  // Remaining bids for each category
-  remaining: {
-    fragmentCard: 38,
-    timespace: 47,
-    lnd: 45,
-  },
-  // Bid limits
-  limits: {
-    fragmentCard: 40,
-    timespace: 50,
-    lnd: 50,
-  },
 }
 
-const dkpHistory = [
-  { id: '1', type: 'earn', amount: 150, reason: 'Dragon Lair Raid', date: '2 hours ago' },
-  { id: '2', type: 'spend', amount: 420, reason: 'Won Fragment Card x3', date: 'Yesterday' },
-  { id: '3', type: 'earn', amount: 100, reason: 'Weekly Attendance Bonus', date: '2 days ago' },
-  { id: '4', type: 'earn', amount: 50, reason: 'Event Participation', date: '3 days ago' },
-  { id: '5', type: 'spend', amount: 200, reason: 'Won Timespace x2', date: '4 days ago' },
-]
+
 
 function StatCard({ icon, value, label, subLabel, color }: { 
   icon: string
@@ -250,6 +229,8 @@ function PendingRequestCard({ request }: { request: LootRequest }) {
 
 export function MyDkpPage() {
   const { settings, addLootRequest } = useGuildSettings()
+  const { getMyDkp } = useMemberDkp()
+  const myDkp = getMyDkp()
   const [requestModal, setRequestModal] = useState<{ open: boolean; type: 'Fragment Card' | 'LND' | 'Timespace' }>({ open: false, type: 'Fragment Card' })
 
   const openRequest = (type: 'Fragment Card' | 'LND' | 'Timespace') => {
@@ -267,9 +248,9 @@ export function MyDkpPage() {
   const handleSubmitRequest = (quantity: number, note: string) => {
     const dkpCost = getDkpCost(requestModal.type) * quantity
     addLootRequest({
-      memberId: currentUserData.id,
-      memberName: currentUserData.name,
-      memberClass: currentUserData.class,
+      memberId: currentUserProfile.id,
+      memberName: currentUserProfile.name,
+      memberClass: currentUserProfile.class,
       itemType: requestModal.type,
       quantity,
       dkpCost,
@@ -279,7 +260,7 @@ export function MyDkpPage() {
 
   // Get pending requests for current user
   const myPendingRequests = settings.lootRequests.filter(
-    r => r.memberId === currentUserData.id && r.status === 'pending'
+    r => r.memberId === currentUserProfile.id && r.status === 'pending'
   )
 
   // Calculate total pending DKP
@@ -293,10 +274,10 @@ export function MyDkpPage() {
             <span className="text-2xl">👤</span> My DKP
           </h1>
           <div className="flex items-center gap-3 mt-2">
-            <span className="text-lg">{currentUserData.class.icon}</span>
-            <span className="text-sm font-bold text-foreground">{currentUserData.name}</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(currentUserData.role)}`}>
-              {currentUserData.role}
+            <span className="text-lg">{currentUserProfile.class.icon}</span>
+            <span className="text-sm font-bold text-foreground">{currentUserProfile.name}</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded ${getRoleColor(currentUserProfile.role)}`}>
+              {currentUserProfile.role}
             </span>
           </div>
         </div>
@@ -306,26 +287,26 @@ export function MyDkpPage() {
       <div className="grid grid-cols-4 gap-4 mb-7 max-md:grid-cols-2 max-sm:grid-cols-1">
         <StatCard 
           icon="💎" 
-          value={currentUserData.dkp.toLocaleString()} 
+          value={myDkp.dkp.toLocaleString()} 
           label="Current DKP" 
           subLabel={totalPendingDkp > 0 ? `${totalPendingDkp} DKP pending` : undefined}
           color="bg-gold" 
         />
         <StatCard 
           icon="📈" 
-          value={`+${currentUserData.weeklyEarned}`} 
+          value={`+${myDkp.weeklyEarned}`} 
           label="Earned This Week" 
           color="bg-accent" 
         />
         <StatCard 
           icon="📉" 
-          value={`-${currentUserData.weeklySpent}`} 
+          value={`-${myDkp.weeklySpent}`} 
           label="Spent This Week" 
           color="bg-destructive" 
         />
         <StatCard 
           icon="✅" 
-          value={`${currentUserData.attendance}%`} 
+          value={`${myDkp.attendance}%`} 
           label="Attendance Rate" 
           color="bg-primary" 
         />
@@ -356,22 +337,22 @@ export function MyDkpPage() {
           <RemainingBidsCard 
             type="Fragment Card" 
             icon="🃏" 
-            remaining={currentUserData.remaining.fragmentCard} 
-            limit={currentUserData.limits.fragmentCard}
+            remaining={myDkp.remaining.fragmentCard} 
+            limit={myDkp.limits.fragmentCard}
             color="bg-purple-500/20 text-purple-400"
           />
           <RemainingBidsCard 
             type="Timespace" 
             icon="🔮" 
-            remaining={currentUserData.remaining.timespace} 
-            limit={currentUserData.limits.timespace}
+            remaining={myDkp.remaining.timespace} 
+            limit={myDkp.limits.timespace}
             color="bg-cyan-500/20 text-cyan-400"
           />
           <RemainingBidsCard 
             type="LND" 
             icon="⚡" 
-            remaining={currentUserData.remaining.lnd} 
-            limit={currentUserData.limits.lnd}
+            remaining={myDkp.remaining.lnd} 
+            limit={myDkp.limits.lnd}
             color="bg-amber-500/20 text-amber-400"
           />
         </div>
@@ -452,23 +433,31 @@ export function MyDkpPage() {
       {/* DKP History */}
       <div className="bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden">
         <div className="p-4 px-6 border-b border-primary/10 text-sm font-bold text-foreground flex items-center justify-between">
-          <span>📋 Your DKP History</span>
+          <span>Your DKP History</span>
           <button className="text-xs text-primary-light hover:underline">View All</button>
         </div>
-        {dkpHistory.map((item) => (
-          <div key={item.id} className="flex items-center gap-4 p-4 px-6 border-b border-primary/6 last:border-b-0 hover:bg-primary/5 transition-colors">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${item.type === 'earn' ? 'bg-accent/20' : 'bg-destructive/20'}`}>
-              {item.type === 'earn' ? '📈' : '📉'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-foreground">{item.reason}</div>
-              <div className="text-xs text-muted-foreground/70">{item.date}</div>
-            </div>
-            <div className={`font-mono text-sm font-bold ${item.type === 'earn' ? 'text-accent' : 'text-destructive'}`}>
-              {item.type === 'earn' ? '+' : '-'}{item.amount} DKP
-            </div>
+        {myDkp.history.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="text-4xl mb-3">📋</div>
+            <div className="text-sm text-muted-foreground">No DKP history yet</div>
+            <div className="text-xs text-muted-foreground/70 mt-1">Your DKP transactions will appear here</div>
           </div>
-        ))}
+        ) : (
+          myDkp.history.slice(0, 10).map((item) => (
+            <div key={item.id} className="flex items-center gap-4 p-4 px-6 border-b border-primary/6 last:border-b-0 hover:bg-primary/5 transition-colors">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${item.type === 'earn' ? 'bg-accent/20' : 'bg-destructive/20'}`}>
+                {item.type === 'earn' ? '📈' : '📉'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-foreground">{item.reason}</div>
+                <div className="text-xs text-muted-foreground/70">{item.date}</div>
+              </div>
+              <div className={`font-mono text-sm font-bold ${item.type === 'earn' ? 'text-accent' : 'text-destructive'}`}>
+                {item.type === 'earn' ? '+' : '-'}{item.amount} DKP
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <RequestModal 

@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { roleColors, roleIcons, roles } from '@/lib/data'
 import type { Member, MemberBidLimits, MemberScreenshots } from '@/lib/data'
+import { useMemberDkp } from '@/contexts/member-dkp-context'
 
 interface MemberModalProps {
   member: Member
@@ -204,18 +205,110 @@ function EditRoleModal({
   )
 }
 
+function AddDkpModal({ 
+  member, 
+  isOpen, 
+  onClose, 
+  onAdd 
+}: { 
+  member: Member
+  isOpen: boolean
+  onClose: () => void
+  onAdd: (amount: number, reason: string) => void
+}) {
+  const [amount, setAmount] = useState('')
+  const [reason, setReason] = useState('')
+
+  if (!isOpen) return null
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const numAmount = parseInt(amount, 10)
+    if (numAmount > 0 && reason.trim()) {
+      onAdd(numAmount, reason.trim())
+      setAmount('')
+      setReason('')
+      onClose()
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={onClose}>
+      <div 
+        className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 border-b border-primary/15">
+          <h2 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+            Add DKP to {member.name}
+          </h2>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">DKP Amount</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              placeholder="Enter DKP amount"
+              min="1"
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)] placeholder:text-muted-foreground/50"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">Reason</label>
+            <select
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              className="w-full bg-white/4 border border-primary/20 rounded-xl py-2.5 px-4 text-foreground text-sm font-sans outline-none cursor-pointer transition-all duration-200 focus:border-primary focus:shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+              required
+            >
+              <option value="">Select reason...</option>
+              <option value="Raid Participation">Raid Participation</option>
+              <option value="Boss Kill Bonus">Boss Kill Bonus</option>
+              <option value="Weekly Attendance Bonus">Weekly Attendance Bonus</option>
+              <option value="Event Participation">Event Participation</option>
+              <option value="Guild Contribution">Guild Contribution</option>
+              <option value="Leadership Bonus">Leadership Bonus</option>
+              <option value="Manual Adjustment">Manual Adjustment</option>
+            </select>
+          </div>
+          <div className="flex gap-3 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 px-4 rounded-xl cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-transparent text-muted-foreground border border-white/15 hover:bg-white/5 hover:border-white/25"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+            >
+              Add DKP
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export function MemberModal({ member, onClose, onUpdateMember }: MemberModalProps) {
+  const { addDkp, memberDkp } = useMemberDkp()
   const [activeTab, setActiveTab] = useState<'character' | 'screenshots' | 'dkp' | 'loot'>('character')
   const [showEditRole, setShowEditRole] = useState(false)
+  const [showAddDkp, setShowAddDkp] = useState(false)
   const [localMember, setLocalMember] = useState(member)
 
-  const dkpHistory = [
-    { desc: 'Dragon Lair Raid', amount: '+150 DKP', positive: true },
-    { desc: 'Weekly Attendance', amount: '+100 DKP', positive: true },
-    { desc: 'Loot Purchase', amount: '-180 DKP', positive: false },
-    { desc: 'Boss Kill Bonus', amount: '+200 DKP', positive: true },
-    { desc: 'No-show Penalty', amount: '-80 DKP', positive: false },
-  ]
+  // Get DKP data from context
+  const memberDkpData = memberDkp[member.id]
+  const dkpHistory = memberDkpData?.history || []
+
+  const handleAddDkp = (amount: number, reason: string) => {
+    addDkp(member.id, amount, reason)
+  }
 
   const lootHistory = [
     { item: 'Fragment Card x5', cost: '680 DKP' },
@@ -426,12 +519,33 @@ export function MemberModal({ member, onClose, onUpdateMember }: MemberModalProp
           {/* DKP History Tab */}
           {activeTab === 'dkp' && (
             <div className="flex flex-col gap-2 animate-in fade-in duration-200">
-              {dkpHistory.map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-2.5 px-3.5 rounded-lg bg-white/2 border border-primary/8">
-                  <div className="text-[13px] text-muted-foreground"><b className="text-foreground">{localMember.name}</b> — {item.desc}</div>
-                  <div className={`font-mono text-[13px] font-bold ${item.positive ? 'text-accent' : 'text-destructive'}`}>{item.amount}</div>
+              {/* DKP Summary */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 text-center">
+                  <div className="font-mono text-xl font-bold text-primary-light">{memberDkpData?.dkp || 0}</div>
+                  <div className="text-[10px] text-muted-foreground">Current DKP</div>
                 </div>
-              ))}
+                <div className="bg-accent/10 border border-accent/20 rounded-xl p-3 text-center">
+                  <div className="font-mono text-xl font-bold text-accent">+{memberDkpData?.weeklyEarned || 0}</div>
+                  <div className="text-[10px] text-muted-foreground">This Week</div>
+                </div>
+              </div>
+              
+              {dkpHistory.length === 0 ? (
+                <div className="text-center py-6">
+                  <div className="text-3xl mb-2">No history</div>
+                  <div className="text-xs text-muted-foreground">No DKP transactions yet</div>
+                </div>
+              ) : (
+                dkpHistory.slice(0, 5).map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-2.5 px-3.5 rounded-lg bg-white/2 border border-primary/8">
+                    <div className="text-[13px] text-muted-foreground"><b className="text-foreground">{localMember.name}</b> {item.reason}</div>
+                    <div className={`font-mono text-[13px] font-bold ${item.type === 'earn' ? 'text-accent' : 'text-destructive'}`}>
+                      {item.type === 'earn' ? '+' : '-'}{item.amount} DKP
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
 
@@ -449,8 +563,11 @@ export function MemberModal({ member, onClose, onUpdateMember }: MemberModalProp
 
           {/* Actions */}
           <div className="flex gap-2 mt-6 flex-wrap">
-            <button className="inline-flex items-center gap-2 py-2 px-3.5 rounded-xl border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]">
-              💎 Add DKP
+            <button 
+              onClick={() => setShowAddDkp(true)}
+              className="inline-flex items-center gap-2 py-2 px-3.5 rounded-xl border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+            >
+              Add DKP
             </button>
             <button 
               onClick={() => setShowEditRole(true)}
@@ -470,6 +587,13 @@ export function MemberModal({ member, onClose, onUpdateMember }: MemberModalProp
         isOpen={showEditRole}
         onClose={() => setShowEditRole(false)}
         onSave={handleRoleSave}
+      />
+
+      <AddDkpModal 
+        member={localMember}
+        isOpen={showAddDkp}
+        onClose={() => setShowAddDkp(false)}
+        onAdd={handleAddDkp}
       />
     </div>
   )
