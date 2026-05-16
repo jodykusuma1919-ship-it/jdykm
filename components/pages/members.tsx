@@ -248,19 +248,15 @@ export function MembersPage({ userRole }: MembersPageProps) {
             <div className="text-[11px] font-bold tracking-[3px] text-primary-light uppercase mb-1.5">【PRSGD】</div>
             <h1 className="font-serif text-4xl font-black text-white drop-shadow-[0_0_30px_rgba(124,58,237,0.6)] leading-none mb-1.5">Prosgard</h1>
             <div className="text-sm text-muted-foreground font-medium">
-              Server: <span className="text-primary-light">Aetheria-Prime</span> · World Rank: <span className="text-primary-light">#7</span>
+              Server: <span className="text-primary-light">PRONTERA 4</span> · <span className="text-primary-light">Guild League : Peak King</span>
             </div>
             <div className="flex gap-7 mt-4 flex-wrap">
               <div className="flex flex-col gap-0.5">
-                <div className="font-mono text-[22px] font-bold text-foreground">247</div>
+                <div className="font-mono text-[22px] font-bold text-foreground">{members.length}</div>
                 <div className="text-[11px] text-muted-foreground/70 font-medium tracking-wide">Members</div>
               </div>
               <div className="flex flex-col gap-0.5">
-                <div className="font-mono text-[22px] font-bold text-accent">28</div>
-                <div className="text-[11px] text-muted-foreground/70 font-medium tracking-wide">Online</div>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <div className="font-mono text-[22px] font-bold text-gold">87%</div>
+                <div className="font-mono text-[22px] font-bold text-gold">0%</div>
                 <div className="text-[11px] text-muted-foreground/70 font-medium tracking-wide">Weekly Att.</div>
               </div>
               <div className="flex flex-col gap-0.5">
