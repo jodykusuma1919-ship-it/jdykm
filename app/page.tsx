@@ -6,6 +6,7 @@ import { Topbar } from '@/components/topbar'
 import { DashboardPage } from '@/components/pages/dashboard'
 import { MembersPage } from '@/components/pages/members'
 import { DkpPage } from '@/components/pages/dkp'
+import { MyDkpPage } from '@/components/pages/my-dkp'
 import { LootPage } from '@/components/pages/loot'
 import { EventsPage } from '@/components/pages/events'
 import { AttendancePage } from '@/components/pages/attendance'
@@ -15,12 +16,13 @@ import { SettingsPage } from '@/components/pages/settings'
 import { PartiesPage } from '@/components/pages/parties'
 import { BattlefieldPage } from '@/components/pages/battlefield'
 
-export type Page = 'dashboard' | 'members' | 'dkp' | 'loot' | 'events' | 'attendance' | 'analytics' | 'recruitment' | 'settings' | 'parties' | 'battlefield'
+export type Page = 'dashboard' | 'members' | 'dkp' | 'my-dkp' | 'loot' | 'events' | 'attendance' | 'analytics' | 'recruitment' | 'settings' | 'parties' | 'battlefield'
 
 const pageLabels: Record<Page, string> = {
   dashboard: 'Dashboard',
   members: 'Guild Members',
   dkp: 'DKP System',
+  'my-dkp': 'My DKP',
   loot: 'Loot Management',
   events: 'Events',
   attendance: 'Attendance',
@@ -83,6 +85,7 @@ export default function Home() {
         {currentPage === 'dashboard' && <DashboardPage onNavigate={navigate} />}
         {currentPage === 'members' && <MembersPage />}
         {currentPage === 'dkp' && <DkpPage />}
+        {currentPage === 'my-dkp' && <MyDkpPage />}
         {currentPage === 'loot' && <LootPage onNavigate={navigate} />}
         {currentPage === 'events' && <EventsPage onNavigate={navigate} />}
         {currentPage === 'attendance' && <AttendancePage />}

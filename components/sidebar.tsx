@@ -88,6 +88,7 @@ export function Sidebar({ currentPage, onNavigate, collapsed, mobileOpen }: Side
       <NavItem page="members" icon="👥" label="Members" badge={47} active={currentPage === 'members'} onClick={() => onNavigate('members')} collapsed={collapsed && !mobileOpen} />
 
       <SidebarSection title="ECONOMY" collapsed={collapsed && !mobileOpen} />
+      <NavItem page="my-dkp" icon="👤" label="My DKP" active={currentPage === 'my-dkp'} onClick={() => onNavigate('my-dkp')} collapsed={collapsed && !mobileOpen} />
       <NavItem page="dkp" icon="💎" label="DKP" active={currentPage === 'dkp'} onClick={() => onNavigate('dkp')} collapsed={collapsed && !mobileOpen} />
       <NavItem page="loot" icon="⚡" label="Loot" badge={3} active={currentPage === 'loot'} onClick={() => onNavigate('loot')} collapsed={collapsed && !mobileOpen} />
 

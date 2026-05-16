@@ -82,6 +82,11 @@ function SettingToggle({ label, description, defaultOn, disabled }: { label: str
 export function SettingsPage({ onNavigate }: SettingsPageProps) {
   const [selectedPreset, setSelectedPreset] = useState('222')
   const [customValues, setCustomValues] = useState({ fragmentCard: 2, timespace: 2, lnd: 2 })
+  const [lootRewards, setLootRewards] = useState({
+    fragmentCard: { dkpCost: 100, quantity: 3 },
+    timespace: { dkpCost: 150, quantity: 2 },
+    lnd: { dkpCost: 200, quantity: 1 },
+  })
   const isFullAdmin = canEditAllSettings()
   const canEditBattle = canEditBattleSettings()
 
@@ -249,6 +254,147 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Loot Rewards Settings - Guild Master & Vice Master Only */}
+      <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6 mb-6">
+        <div className="border-b border-primary/15 pb-3 mb-5">
+          <div className="text-[15px] font-bold text-foreground flex items-center gap-2">
+            🎁 Loot Reward Settings
+            <span className="text-[11px] font-medium text-muted-foreground/70 ml-2">Configure DKP cost and quantities for each loot type</span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Only Guild Master and Vice Master can edit these settings
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">
+          {/* Fragment Card Rewards */}
+          <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xl">🃏</span>
+              <span className="text-sm font-bold text-foreground">Fragment Card</span>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">DKP Cost per Bid</label>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, fragmentCard: { ...r.fragmentCard, dkpCost: Math.max(10, r.fragmentCard.dkpCost - 10) } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-purple-500/20'}`}
+                  >−</button>
+                  <span className="font-mono text-lg font-bold text-purple-400 min-w-[50px] text-center">{lootRewards.fragmentCard.dkpCost}</span>
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, fragmentCard: { ...r.fragmentCard, dkpCost: r.fragmentCard.dkpCost + 10 } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-purple-500/20'}`}
+                  >+</button>
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">Default Quantity</label>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, fragmentCard: { ...r.fragmentCard, quantity: Math.max(1, r.fragmentCard.quantity - 1) } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-purple-500/20'}`}
+                  >−</button>
+                  <span className="font-mono text-lg font-bold text-purple-400 min-w-[50px] text-center">x{lootRewards.fragmentCard.quantity}</span>
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, fragmentCard: { ...r.fragmentCard, quantity: Math.min(10, r.fragmentCard.quantity + 1) } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-purple-500/20'}`}
+                  >+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Timespace Rewards */}
+          <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xl">🔮</span>
+              <span className="text-sm font-bold text-foreground">Timespace</span>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">DKP Cost per Bid</label>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, timespace: { ...r.timespace, dkpCost: Math.max(10, r.timespace.dkpCost - 10) } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-cyan-500/20'}`}
+                  >−</button>
+                  <span className="font-mono text-lg font-bold text-cyan-400 min-w-[50px] text-center">{lootRewards.timespace.dkpCost}</span>
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, timespace: { ...r.timespace, dkpCost: r.timespace.dkpCost + 10 } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-cyan-500/20'}`}
+                  >+</button>
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">Default Quantity</label>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, timespace: { ...r.timespace, quantity: Math.max(1, r.timespace.quantity - 1) } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-cyan-500/20'}`}
+                  >−</button>
+                  <span className="font-mono text-lg font-bold text-cyan-400 min-w-[50px] text-center">x{lootRewards.timespace.quantity}</span>
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, timespace: { ...r.timespace, quantity: Math.min(10, r.timespace.quantity + 1) } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-cyan-500/20'}`}
+                  >+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* LND Rewards */}
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xl">⚡</span>
+              <span className="text-sm font-bold text-foreground">LND</span>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">DKP Cost per Bid</label>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, dkpCost: Math.max(10, r.lnd.dkpCost - 10) } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-amber-500/30 bg-amber-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-amber-500/20'}`}
+                  >−</button>
+                  <span className="font-mono text-lg font-bold text-amber-400 min-w-[50px] text-center">{lootRewards.lnd.dkpCost}</span>
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, dkpCost: r.lnd.dkpCost + 10 } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-amber-500/30 bg-amber-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-amber-500/20'}`}
+                  >+</button>
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground font-semibold mb-1 block">Default Quantity</label>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, quantity: Math.max(1, r.lnd.quantity - 1) } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-amber-500/30 bg-amber-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-amber-500/20'}`}
+                  >−</button>
+                  <span className="font-mono text-lg font-bold text-amber-400 min-w-[50px] text-center">x{lootRewards.lnd.quantity}</span>
+                  <button 
+                    onClick={() => isFullAdmin && setLootRewards(r => ({ ...r, lnd: { ...r.lnd, quantity: Math.min(10, r.lnd.quantity + 1) } }))}
+                    disabled={!isFullAdmin}
+                    className={`w-8 h-8 rounded-lg border border-amber-500/30 bg-amber-500/10 text-foreground font-bold flex items-center justify-center transition-all ${!isFullAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-amber-500/20'}`}
+                  >+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Other Settings */}

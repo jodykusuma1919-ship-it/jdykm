@@ -12,6 +12,13 @@ interface LootPageProps {
 const DISPLAY_OPTIONS = [20, 25, 30, 40, 50] as const
 const BIDS_PER_PAGE = 20
 
+// Guild loot inventory remaining
+const guildLootRemaining = {
+  fragmentCard: { current: 127, total: 200 },
+  timespace: { current: 45, total: 100 },
+  lnd: { current: 83, total: 150 },
+}
+
 function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: () => void }) {
   const [time, setTime] = useState(auction.timeRemaining)
   const [currentPage, setCurrentPage] = useState(1)
@@ -212,6 +219,54 @@ export function LootPage({ onNavigate }: LootPageProps) {
           >
             + New Auction
           </button>
+        </div>
+      </div>
+
+      {{/* Guild Loot Inventory Remaining */}
+      <div className="grid grid-cols-3 gap-4 mb-5 max-md:grid-cols-1">
+        <div className="bg-card backdrop-blur-xl border border-purple-500/25 rounded-2xl p-4 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-[25px] opacity-30 pointer-events-none bg-purple-500" />
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-2xl">🃏</div>
+            <div className="flex-1">
+              <div className="text-xs text-muted-foreground font-semibold">Fragment Card Remaining</div>
+              <div className="font-mono text-2xl font-bold text-foreground">{guildLootRemaining.fragmentCard.current}</div>
+              <div className="w-full h-1.5 bg-white/10 rounded-full mt-1">
+                <div className="h-full rounded-full bg-purple-500" style={{ width: `${(guildLootRemaining.fragmentCard.current / guildLootRemaining.fragmentCard.total) * 100}%` }} />
+              </div>
+              <div className="text-[10px] text-muted-foreground/60 mt-1">of {guildLootRemaining.fragmentCard.total} total</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card backdrop-blur-xl border border-cyan-500/25 rounded-2xl p-4 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-[25px] opacity-30 pointer-events-none bg-cyan-500" />
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center text-2xl">🔮</div>
+            <div className="flex-1">
+              <div className="text-xs text-muted-foreground font-semibold">Timespace Remaining</div>
+              <div className="font-mono text-2xl font-bold text-foreground">{guildLootRemaining.timespace.current}</div>
+              <div className="w-full h-1.5 bg-white/10 rounded-full mt-1">
+                <div className="h-full rounded-full bg-cyan-500" style={{ width: `${(guildLootRemaining.timespace.current / guildLootRemaining.timespace.total) * 100}%` }} />
+              </div>
+              <div className="text-[10px] text-muted-foreground/60 mt-1">of {guildLootRemaining.timespace.total} total</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card backdrop-blur-xl border border-amber-500/25 rounded-2xl p-4 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-[25px] opacity-30 pointer-events-none bg-amber-500" />
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl">⚡</div>
+            <div className="flex-1">
+              <div className="text-xs text-muted-foreground font-semibold">LND Remaining</div>
+              <div className="font-mono text-2xl font-bold text-foreground">{guildLootRemaining.lnd.current}</div>
+              <div className="w-full h-1.5 bg-white/10 rounded-full mt-1">
+                <div className="h-full rounded-full bg-amber-500" style={{ width: `${(guildLootRemaining.lnd.current / guildLootRemaining.lnd.total) * 100}%` }} />
+              </div>
+              <div className="text-[10px] text-muted-foreground/60 mt-1">of {guildLootRemaining.lnd.total} total</div>
+            </div>
+          </div>
         </div>
       </div>
 
