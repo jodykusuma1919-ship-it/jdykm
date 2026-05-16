@@ -95,7 +95,7 @@ function GuildApp() {
         {currentPage === 'dkp' && <DkpPage />}
         {currentPage === 'my-dkp' && <MyDkpPage />}
         {currentPage === 'loot' && <LootPage onNavigate={navigate} userRole={userRole} />}
-        {currentPage === 'events' && <EventsPage onNavigate={navigate} />}
+        {currentPage === 'events' && <EventsPage onNavigate={navigate} userRole={userRole} />}
         {currentPage === 'attendance' && <AttendancePage />}
         {currentPage === 'analytics' && <AnalyticsPage />}
         {currentPage === 'recruitment' && <RecruitmentPage userRole={userRole} />}

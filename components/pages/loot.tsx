@@ -395,9 +395,11 @@ export function LootPage({ onNavigate, userRole }: LootPageProps) {
             LND <span className="font-mono text-[13px] text-white bg-primary rounded-xl py-0.5 px-1.5 ml-0.5">50</span>
           </span>
         </div>
-        <button onClick={() => onNavigate('settings')} className="ml-auto text-xs text-primary-light cursor-pointer underline whitespace-nowrap">
-          ⚙ Edit Rule
-        </button>
+        {canManage && (
+          <button onClick={() => onNavigate('settings')} className="ml-auto text-xs text-primary-light cursor-pointer underline whitespace-nowrap">
+            ⚙ Edit Rule
+          </button>
+        )}
       </div>
 
       {/* Active status */}

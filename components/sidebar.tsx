@@ -68,13 +68,16 @@ export function Sidebar({ currentPage, onNavigate, collapsed, mobileOpen, userRo
   // Permission checks
   const canSeeMembers = canViewAllMembers(userRole)
   const canSeeDKP = canManageDKP(userRole)
-  const canSeeLoot = canManageLoot(userRole)
+  // All users can see loot for bidding
+  const canSeeLoot = true
   const canSeeAttendance = canRecordAttendance(userRole)
   const canSeeAnalytics = canViewReports(userRole)
   const canSeeRecruitment = canManageRecruitment(userRole)
   const canSeeParties = canEditBattleSettings(userRole)
   const canSeeBattlefield = canEditBattleSettings(userRole)
   const canSeeSettings = canEditAllSettings(userRole) || canEditBattleSettings(userRole)
+  // All users can see events
+  const canSeeEvents = true
 
   // Members can only see: Dashboard, My DKP, Events, Loot (bidding progress)
   const isMemberOrRecruit = userRole === 'Member' || userRole === 'Recruit'

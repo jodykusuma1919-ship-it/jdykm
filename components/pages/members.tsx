@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { allMembers, roleColors, roleIcons, classes, roles } from '@/lib/data'
 import type { Member } from '@/lib/data'
 import { MemberModal } from '@/components/member-modal'
-import { canViewAllMembers, canManageDKP } from '@/lib/roles'
+import { canViewAllMembers, canEditMembers } from '@/lib/roles'
 import type { GuildRole } from '@/lib/roles'
 
 interface MembersPageProps {
@@ -172,7 +172,7 @@ function AttendanceBar({ value }: { value: number }) {
 }
 
 export function MembersPage({ userRole }: MembersPageProps) {
-  const canManage = canManageDKP(userRole)
+  const canManage = canEditMembers(userRole)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')

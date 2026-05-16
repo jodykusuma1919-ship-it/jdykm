@@ -14,36 +14,61 @@ const ROLE_LEVELS: Record<GuildRole, number> = {
 }
 
 // Permission checks - these accept a role parameter now
+// NOTE: Admin role is VIEW ONLY - cannot edit anything (same as Member for edit permissions)
+
 export function canEditAllSettings(role: GuildRole): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master'].includes(role)
+  // Admin CANNOT edit - only Guild Master and Vice Master
+  return ['Guild Master', 'Vice Master'].includes(role)
 }
 
 export function canEditBattleSettings(role: GuildRole): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
+  // Admin CANNOT edit - only guild leadership
+  return ['Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
 }
 
 export function canManageRecruitment(role: GuildRole): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
+  // Admin CANNOT manage - only guild leadership
+  return ['Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
+}
+
+export function canScheduleEvents(role: GuildRole): boolean {
+  // Only Guild Master and Vice Master can schedule events
+  return ['Guild Master', 'Vice Master'].includes(role)
 }
 
 export function canRecordAttendance(role: GuildRole): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer', 'Raid Leader'].includes(role)
+  // Admin can view but leadership can record
+  return ['Guild Master', 'Vice Master', 'Commander', 'Officer', 'Raid Leader'].includes(role)
 }
 
 export function canViewReports(role: GuildRole): boolean {
+  // Admin CAN view reports (read-only)
   return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
 }
 
 export function canViewAllMembers(role: GuildRole): boolean {
+  // Admin CAN view all members (read-only)
   return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer', 'Raid Leader'].includes(role)
 }
 
+export function canEditMembers(role: GuildRole): boolean {
+  // Admin CANNOT edit members - only guild leadership
+  return ['Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
+}
+
 export function canManageDKP(role: GuildRole): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
+  // Admin CANNOT manage DKP - only guild leadership
+  return ['Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
 }
 
 export function canManageLoot(role: GuildRole): boolean {
-  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
+  // Admin CANNOT manage loot - only guild leadership can create auctions
+  return ['Guild Master', 'Vice Master', 'Commander', 'Officer'].includes(role)
+}
+
+export function canBidOnLoot(role: GuildRole): boolean {
+  // All members (including Admin) can bid/request loot
+  return ['Admin', 'Guild Master', 'Vice Master', 'Commander', 'Officer', 'Raid Leader', 'Member', 'Recruit'].includes(role)
 }
 
 export function getRoleLevel(role: GuildRole): number {

@@ -4,9 +4,12 @@ import type { Page } from '@/app/page'
 import { defaultGuildEvents } from '@/lib/data'
 import type { GuildEvent } from '@/lib/data'
 import { useState } from 'react'
+import { canScheduleEvents, canEditAllSettings } from '@/lib/roles'
+import type { GuildRole } from '@/lib/roles'
 
 interface EventsPageProps {
   onNavigate: (page: Page) => void
+  userRole: GuildRole
 }
 
 function EventRow({ 
@@ -225,7 +228,9 @@ function DkpAwardedToast({ show, dkpAmount }: { show: boolean; dkpAmount: number
   )
 }
 
-export function EventsPage({ onNavigate }: EventsPageProps) {
+export function EventsPage({ onNavigate, userRole }: EventsPageProps) {
+  const canSchedule = canScheduleEvents(userRole)
+  const canEditSettings = canEditAllSettings(userRole)
   const [filter, setFilter] = useState('')
   const [showScheduleEvent, setShowScheduleEvent] = useState(false)
   const [events, setEvents] = useState<GuildEvent[]>(defaultGuildEvents)
@@ -282,12 +287,14 @@ export function EventsPage({ onNavigate }: EventsPageProps) {
           <div className="flex items-center gap-1.5 py-1.5 px-3.5 bg-gold/10 border border-gold/25 rounded-full text-xs font-bold text-gold">
             💎 Att. DKP: <span>100</span> pts
           </div>
-          <button 
-            onClick={() => setShowScheduleEvent(true)}
-            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
-          >
-            + Schedule Event
-          </button>
+          {canSchedule && (
+            <button 
+              onClick={() => setShowScheduleEvent(true)}
+              className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border-none cursor-pointer font-sans text-sm font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+            >
+              + Schedule Event
+            </button>
+          )}
         </div>
       </div>
 
@@ -298,9 +305,11 @@ export function EventsPage({ onNavigate }: EventsPageProps) {
           <div className="text-[13px] font-bold text-gold">Auto DKP on Attendance</div>
           <div className="text-xs text-muted-foreground">Each member who clicks <b className="text-foreground">Record Attendance</b> on an event will automatically receive the event&apos;s DKP reward.</div>
         </div>
-        <button onClick={() => onNavigate('settings')} className="ml-auto inline-flex items-center gap-2 py-1.5 px-3 rounded-lg cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-gold border border-gold/40 hover:bg-gold/15 hover:border-gold">
-          ⚙ Change Amount
-        </button>
+        {canEditSettings && (
+          <button onClick={() => onNavigate('settings')} className="ml-auto inline-flex items-center gap-2 py-1.5 px-3 rounded-lg cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-transparent text-gold border border-gold/40 hover:bg-gold/15 hover:border-gold">
+            ⚙ Change Amount
+          </button>
+        )}
       </div>
 
       {/* Layout */}
