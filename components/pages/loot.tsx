@@ -10,6 +10,8 @@ interface LootPageProps {
 
 function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: () => void }) {
   const [time, setTime] = useState(auction.timeRemaining)
+  const [currentPage, setCurrentPage] = useState(1)
+  const BIDS_PER_PAGE = 10
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -24,6 +26,11 @@ function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: (
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   }
 
+  const totalPages = Math.ceil(auction.bids.length / BIDS_PER_PAGE)
+  const startIndex = (currentPage - 1) * BIDS_PER_PAGE
+  const visibleBids = auction.bids.slice(startIndex, startIndex + BIDS_PER_PAGE)
+  const bidsLeft = Math.max(0, (auction.category === 'fragmentCard' ? 40 : 50) - auction.bids.length)
+
   return (
     <div className="bg-card backdrop-blur-xl border border-gold/25 rounded-2xl p-5 relative overflow-hidden">
       <div className="absolute top-3 right-3 bg-destructive/90 text-white text-[9px] font-bold tracking-[2px] py-0.5 px-2 rounded animate-pulse-glow">
@@ -32,44 +39,58 @@ function AuctionCard({ auction, onBid }: { auction: typeof auctions[0]; onBid: (
       <div className="font-serif text-base font-bold text-gold mb-1">{auction.icon} {auction.name}</div>
       <div className="text-xs text-muted-foreground mb-4">{auction.type}</div>
       
-      {/* Bid counter row */}
+      {/* Bid counter row with pagination */}
       <div className="flex items-center gap-2 bg-primary/7 border border-primary/15 rounded-lg p-2 px-3 mb-2.5 flex-wrap">
-        <span className="text-[11px] text-muted-foreground/70 font-semibold mr-1 whitespace-nowrap">Bids:</span>
+        <span className="text-[11px] text-muted-foreground/70 font-semibold mr-1 whitespace-nowrap">Bids ({auction.bids.length}):</span>
         <div className="flex items-center gap-1">
-          {[1, 2].map((_, i) => (
-            <div 
-              key={i} 
-              className={`w-[22px] h-[22px] rounded-md border flex items-center justify-center text-[11px] transition-all duration-200 ${i === 0 ? 'bg-primary border-primary text-white font-bold' : 'bg-primary/8 border-primary/35 text-muted-foreground/70'}`}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <button 
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`w-[22px] h-[22px] rounded-md border flex items-center justify-center text-[11px] transition-all duration-200 cursor-pointer ${
+                page === currentPage 
+                  ? 'bg-primary border-primary text-white font-bold' 
+                  : 'bg-primary/8 border-primary/35 text-muted-foreground/70 hover:bg-primary/20'
+              }`}
             >
-              {i + 1}
-            </div>
+              {page}
+            </button>
           ))}
         </div>
         <span className="ml-auto text-[10px] font-bold tracking-[1px] py-0.5 px-2 rounded uppercase bg-accent/12 text-accent border border-accent/25">
-          1 LEFT
+          {bidsLeft} LEFT
         </span>
       </div>
 
-      <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto">
-        {auction.bids.map((bid, i) => (
-          <div 
-            key={i} 
-            className={`flex items-center justify-between p-1.5 px-2.5 rounded-[7px] text-xs font-semibold ${i === 0 ? 'border-gold/35 bg-gold/8' : 'bg-white/3 border border-primary/10'}`}
-          >
-            <span className="text-foreground">{bid.icon} {bid.user}</span>
-            <span className="text-gold font-mono text-[11px]">{bid.dkp} DKP</span>
-            <span className="text-muted-foreground/70 text-[10px]">{bid.time}</span>
-          </div>
-        ))}
+      <div className="flex flex-col gap-1.5 max-h-[320px] overflow-y-auto">
+        {visibleBids.map((bid, i) => {
+          const globalIndex = startIndex + i
+          return (
+            <div 
+              key={i} 
+              className={`flex items-center justify-between p-1.5 px-2.5 rounded-[7px] text-xs font-semibold ${
+                globalIndex === 0 ? 'border-gold/35 bg-gold/8 border' : 'bg-white/3 border border-primary/10'
+              }`}
+            >
+              <span className="text-muted-foreground/60 text-[10px] w-5">#{globalIndex + 1}</span>
+              <span className="text-foreground flex-1">{bid.icon} {bid.user}</span>
+              <span className="text-gold font-mono text-[11px] mx-2">{bid.dkp} DKP</span>
+              <span className="text-muted-foreground/70 text-[10px]">{bid.time}</span>
+            </div>
+          )
+        })}
       </div>
 
       <div className="flex gap-2 mt-3.5 items-center">
         <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-          ⏱ <span className="font-mono text-gold font-bold">{formatTime(time)}</span> remaining
+          <span>Showing {startIndex + 1}-{Math.min(startIndex + BIDS_PER_PAGE, auction.bids.length)} of {auction.bids.length}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-muted-foreground text-xs ml-auto mr-2">
+          <span className="font-mono text-gold font-bold">{formatTime(time)}</span> remaining
         </div>
         <button 
           onClick={onBid}
-          className="ml-auto inline-flex items-center gap-2 py-1.5 px-3.5 rounded-lg border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
+          className="inline-flex items-center gap-2 py-1.5 px-3.5 rounded-lg border-none cursor-pointer font-sans text-xs font-bold tracking-wide transition-all duration-200 whitespace-nowrap bg-gradient-to-br from-primary to-indigo-600 text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(124,58,237,0.5)]"
         >
           Place Bid
         </button>
